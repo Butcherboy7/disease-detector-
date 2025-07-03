@@ -97,6 +97,35 @@ class MedicalAnalysisEngine:
                 "specialist": "Gynecologist/Endocrinologist"
             },
             
+            "food_poisoning": {
+                "name": "Food Poisoning/Gastroenteritis",
+                "category": "Gastrointestinal",
+                "key_symptoms": [
+                    "nausea", "vomiting", "diarrhea", "stomach pain", "abdominal cramps",
+                    "fever", "chills", "fatigue", "dehydration", "loss of appetite"
+                ],
+                "lab_criteria": {},
+                "symptom_weight": 0.9,
+                "lab_weight": 0.1,
+                "confirmation_tests": ["Stool Culture", "Blood Work", "Electrolyte Panel"],
+                "specialist": "Gastroenterologist"
+            },
+            
+            "migraine": {
+                "name": "Migraine Headache",
+                "category": "Neurological",
+                "key_symptoms": [
+                    "severe headache", "throbbing headache", "nausea", "vomiting",
+                    "light sensitivity", "sound sensitivity", "visual disturbances",
+                    "dizziness", "fatigue"
+                ],
+                "lab_criteria": {},
+                "symptom_weight": 0.9,
+                "lab_weight": 0.1,
+                "confirmation_tests": ["CT Scan", "MRI", "Neurological Exam"],
+                "specialist": "Neurologist"
+            },
+            
             "stress_burnout": {
                 "name": "Chronic Stress/Burnout",
                 "category": "Mental Health",
@@ -401,25 +430,25 @@ class MedicalAnalysisEngine:
     def _determine_medical_likelihood(self, clinical_score: float, 
                                     symptom_score: float, lab_score: float) -> str:
         """Determine medical likelihood using realistic clinical thresholds"""
-        # Very High: Strong lab + symptom evidence
+        # Definitive: Strong lab + symptom evidence
         if clinical_score >= 0.8 and lab_score >= 0.8:
-            return "Very High"
+            return "Definitive"
         
-        # High: Good combination of labs and symptoms
+        # Most Likely: Good combination of labs and symptoms
         elif clinical_score >= 0.7 and (lab_score >= 0.6 or symptom_score >= 0.7):
-            return "High"
+            return "Most Likely"
         
-        # Moderate: Some evidence but incomplete picture
+        # Likely: Some evidence but incomplete picture
         elif clinical_score >= 0.5:
-            return "Moderate"
+            return "Likely"
         
-        # Low: Minimal evidence
+        # Possible: Minimal evidence
         elif clinical_score >= 0.3:
-            return "Low"
+            return "Possible"
         
-        # Very Low: Unlikely
+        # Unlikely: Very low evidence
         else:
-            return "Very Low"
+            return "Unlikely"
     
     def _generate_clinical_evidence(self, symptoms: List[str], lab_results: Dict[str, float],
                                   condition_data: Dict, symptom_score: float, 
@@ -456,27 +485,29 @@ class MedicalAnalysisEngine:
         """Generate professional medical assessment"""
         
         # Categorize conditions by likelihood
-        very_high = [c for c in condition_analyses if c['likelihood'] == 'Very High']
-        high = [c for c in condition_analyses if c['likelihood'] == 'High']
-        moderate = [c for c in condition_analyses if c['likelihood'] == 'Moderate']
-        low_very_low = [c for c in condition_analyses if c['likelihood'] in ['Low', 'Very Low']]
+        definitive = [c for c in condition_analyses if c['likelihood'] == 'Definitive']
+        most_likely = [c for c in condition_analyses if c['likelihood'] == 'Most Likely']
+        likely = [c for c in condition_analyses if c['likelihood'] == 'Likely']
+        possible_unlikely = [c for c in condition_analyses if c['likelihood'] in ['Possible', 'Unlikely']]
         
         # Generate primary diagnosis
         primary_diagnosis = None
-        if very_high:
-            primary_diagnosis = very_high[0]
-        elif high:
-            primary_diagnosis = high[0]
+        if definitive:
+            primary_diagnosis = definitive[0]
+        elif most_likely:
+            primary_diagnosis = most_likely[0]
+        elif likely:
+            primary_diagnosis = likely[0]
         
         # Generate differential diagnoses
         differential = []
-        if primary_diagnosis and high:
-            differential = [c for c in high if c != primary_diagnosis][:2]
-        elif moderate:
-            differential = moderate[:2]
+        if primary_diagnosis and most_likely:
+            differential = [c for c in most_likely if c != primary_diagnosis][:2]
+        elif likely:
+            differential = likely[:2]
         
         # Generate unlikely conditions
-        unlikely = [c['condition_name'] for c in low_very_low[:3]]
+        unlikely = [c['condition_name'] for c in possible_unlikely[:3]]
         
         return {
             'primary_diagnosis': primary_diagnosis,
@@ -582,12 +613,22 @@ class MedicalAnalysisEngine:
         # Primary Diagnosis
         primary = assessment.get('primary_diagnosis')
         if primary:
-            report.append("🔍 MOST LIKELY CONDITION")
+            report.append("🔍 DIAGNOSIS")
             report.append("")
-            report.append(f"🩺 **Primary Diagnosis: {primary['condition_name']}**")
-            report.append(f"- Likelihood: {primary['likelihood']}")
+            
+            # Generate direct statement based on likelihood
+            if primary['likelihood'] == 'Definitive':
+                report.append(f"🩺 **You have {primary['condition_name']}**")
+            elif primary['likelihood'] == 'Most Likely':
+                report.append(f"🩺 **You most likely have {primary['condition_name']}**")
+            elif primary['likelihood'] == 'Likely':
+                report.append(f"🩺 **You likely have {primary['condition_name']}**")
+            else:
+                report.append(f"🩺 **You possibly have {primary['condition_name']}**")
+            
+            report.append(f"- Category: {primary['category']}")
             if primary['evidence']:
-                report.append(f"- Clinical Evidence: {'; '.join(primary['evidence'])}")
+                report.append(f"- Supporting Evidence: {'; '.join(primary['evidence'])}")
             report.append("")
         
         # Differential Diagnoses

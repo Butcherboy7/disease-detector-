@@ -134,21 +134,18 @@ def input_collection_step():
         
         example_json = {
             "patient_info": {
-                "name": "Mrs. Anjali D.",
-                "age": 38,
-                "gender": "female",
+                "name": "John D.",
+                "age": 28,
+                "gender": "male",
                 "existing_conditions": []
             },
             "symptoms": [
-                "fatigue", "headache", "dizziness", "palpitations", "cold hands", "brain fog"
+                "nausea", "vomiting", "diarrhea", "stomach pain", "fever"
             ],
-            "lab_results": {
-                "Hemoglobin": "10.1 g/dL",
-                "Ferritin": "8 ng/mL",
-                "TSH": "5.8 uIU/mL",
-                "Vitamin D": "18 ng/mL"
-            }
+            "lab_results": {}
         }
+        
+        st.info("💡 **Example:** Enter symptoms like 'nausea, vomiting, diarrhea' and get a direct diagnosis like 'You most likely have Food Poisoning'")
         
         with st.expander("📋 View Example JSON Format"):
             st.json(example_json)
@@ -525,26 +522,29 @@ def results_step():
         # Primary Diagnosis
         primary = medical_analysis.get('primary_diagnosis')
         if primary:
-            st.markdown("### 🔍 Most Likely Condition")
+            st.markdown("### 🔍 Medical Diagnosis")
             
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                st.write(f"**🩺 Primary Diagnosis: {primary['condition_name']}**")
-                st.write(f"**Category:** {primary['category']}")
-                if primary['evidence']:
-                    st.write(f"**Clinical Evidence:** {'; '.join(primary['evidence'])}")
+            # Generate direct diagnostic statement
+            likelihood = primary['likelihood']
+            if likelihood == 'Definitive':
+                diagnostic_statement = f"**You have {primary['condition_name']}**"
+                st.error(f"🩺 {diagnostic_statement}")
+            elif likelihood == 'Most Likely':
+                diagnostic_statement = f"**You most likely have {primary['condition_name']}**"
+                st.warning(f"🩺 {diagnostic_statement}")
+            elif likelihood == 'Likely':
+                diagnostic_statement = f"**You likely have {primary['condition_name']}**"
+                st.info(f"🩺 {diagnostic_statement}")
+            else:
+                diagnostic_statement = f"**You possibly have {primary['condition_name']}**"
+                st.info(f"🩺 {diagnostic_statement}")
             
-            with col2:
-                likelihood = primary['likelihood']
-                if likelihood in ['Very High', 'High']:
-                    st.error(f"🔴 Likelihood: {likelihood}")
-                elif likelihood == 'Moderate':
-                    st.warning(f"🟡 Likelihood: {likelihood}")
-                else:
-                    st.info(f"🔵 Likelihood: {likelihood}")
+            st.write(f"**Medical Category:** {primary['category']}")
+            if primary['evidence']:
+                st.write(f"**What supports this diagnosis:** {'; '.join(primary['evidence'])}")
             
-            st.write(f"**Specialist Consultation:** {primary['specialist']}")
-            st.write(f"**Recommended Tests:** {', '.join(primary['confirmation_tests'])}")
+            st.write(f"**See this specialist:** {primary['specialist']}")
+            st.write(f"**Get these tests:** {', '.join(primary['confirmation_tests'])}")
             st.divider()
         
         # Differential Diagnoses
