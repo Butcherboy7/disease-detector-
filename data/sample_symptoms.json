@@ -1,0 +1,267 @@
+{
+  "sample_symptoms": [
+    {
+      "id": "diabetes_symptoms_1",
+      "condition": "Diabetes",
+      "severity": "moderate",
+      "description": "I've been experiencing increased thirst and frequent urination for the past few weeks. I also feel tired most of the time and have noticed some blurred vision occasionally. My family has a history of diabetes.",
+      "patient_profile": {
+        "age": 52,
+        "gender": "Female",
+        "existing_conditions": ["Hypertension"],
+        "medications": "Lisinopril 10mg daily",
+        "family_history": "Mother had type 2 diabetes, father had heart disease"
+      },
+      "wearable_data": {
+        "heart_rate": 78,
+        "spo2": 97,
+        "sleep_hours": 6.5
+      },
+      "expected_risk_level": "High"
+    },
+    {
+      "id": "heart_disease_symptoms_1", 
+      "condition": "Heart Disease",
+      "severity": "high",
+      "description": "I've been having chest pain that comes and goes, especially when I walk upstairs or exert myself. Sometimes I feel short of breath and have noticed my heart racing. The pain feels like pressure in my chest.",
+      "patient_profile": {
+        "age": 68,
+        "gender": "Male",
+        "existing_conditions": ["Hypertension", "Diabetes"],
+        "medications": "Metformin 500mg twice daily, Amlodipine 5mg daily",
+        "family_history": "Father died of heart attack at age 65"
+      },
+      "wearable_data": {
+        "heart_rate": 95,
+        "spo2": 94,
+        "sleep_hours": 5.5
+      },
+      "expected_risk_level": "High"
+    },
+    {
+      "id": "stress_symptoms_1",
+      "condition": "Stress/Anxiety",
+      "severity": "moderate",
+      "description": "I've been feeling very anxious and stressed lately. I have trouble sleeping, my mind races at night, and I've been getting frequent headaches. I also notice my heart beating fast sometimes when I'm worried.",
+      "patient_profile": {
+        "age": 34,
+        "gender": "Female",
+        "existing_conditions": [],
+        "medications": "None",
+        "family_history": "No significant family history"
+      },
+      "wearable_data": {
+        "heart_rate": 88,
+        "spo2": 98,
+        "sleep_hours": 4.5
+      },
+      "expected_risk_level": "Medium"
+    },
+    {
+      "id": "respiratory_symptoms_1",
+      "condition": "Respiratory Condition",
+      "severity": "moderate",
+      "description": "I've had a persistent cough for about two weeks now, and I sometimes feel short of breath, especially when I'm active. I also notice some wheezing at night. I used to smoke but quit 5 years ago.",
+      "patient_profile": {
+        "age": 58,
+        "gender": "Male",
+        "existing_conditions": ["Asthma"],
+        "medications": "Albuterol inhaler as needed",
+        "family_history": "No significant respiratory conditions in family"
+      },
+      "wearable_data": {
+        "heart_rate": 82,
+        "spo2": 93,
+        "sleep_hours": 7.0
+      },
+      "expected_risk_level": "High"
+    },
+    {
+      "id": "low_risk_symptoms_1",
+      "condition": "General Health Check",
+      "severity": "low",
+      "description": "I've been feeling a bit more tired than usual and occasionally get mild headaches. I think it might be related to work stress and not getting enough sleep. Overall, I feel pretty healthy.",
+      "patient_profile": {
+        "age": 28,
+        "gender": "Female",
+        "existing_conditions": [],
+        "medications": "Multivitamin daily",
+        "family_history": "Generally healthy family"
+      },
+      "wearable_data": {
+        "heart_rate": 72,
+        "spo2": 99,
+        "sleep_hours": 6.8
+      },
+      "expected_risk_level": "Low"
+    },
+    {
+      "id": "hypertension_symptoms_1",
+      "condition": "Hypertension", 
+      "severity": "moderate",
+      "description": "I've been having frequent headaches, especially in the mornings, and sometimes feel dizzy when I stand up quickly. My vision seems a bit blurry at times. I know my blood pressure has been elevated in the past.",
+      "patient_profile": {
+        "age": 61,
+        "gender": "Male",
+        "existing_conditions": ["Hypertension"],
+        "medications": "Losartan 50mg daily",
+        "family_history": "Both parents had high blood pressure"
+      },
+      "wearable_data": {
+        "heart_rate": 76,
+        "spo2": 96,
+        "sleep_hours": 7.5
+      },
+      "expected_risk_level": "Medium"
+    },
+    {
+      "id": "multiple_conditions_symptoms_1",
+      "condition": "Multiple Risk Factors",
+      "severity": "high",
+      "description": "I've been experiencing chest discomfort, shortness of breath, and fatigue. I also have increased thirst and urination. My blood sugar has been high lately, and I'm worried about my heart because of the chest pain.",
+      "patient_profile": {
+        "age": 72,
+        "gender": "Female", 
+        "existing_conditions": ["Diabetes", "Hypertension", "Heart Disease"],
+        "medications": "Metformin 1000mg twice daily, Lisinopril 20mg daily, Atorvastatin 40mg daily",
+        "family_history": "Multiple family members with diabetes and heart disease"
+      },
+      "wearable_data": {
+        "heart_rate": 92,
+        "spo2": 95,
+        "sleep_hours": 6.0
+      },
+      "expected_risk_level": "High"
+    }
+  ],
+  "test_files": [
+    {
+      "type": "blood_test",
+      "description": "Sample blood test report showing elevated glucose levels",
+      "filename": "blood_test_high_glucose.pdf",
+      "expected_findings": ["elevated glucose", "normal cholesterol", "slightly elevated HbA1c"]
+    },
+    {
+      "type": "chest_xray", 
+      "description": "Chest X-ray image for respiratory analysis",
+      "filename": "chest_xray_sample.jpg",
+      "expected_findings": ["requires radiological interpretation", "image quality assessment"]
+    },
+    {
+      "type": "ecg_report",
+      "description": "ECG report showing normal sinus rhythm",
+      "filename": "ecg_normal_rhythm.pdf", 
+      "expected_findings": ["normal sinus rhythm", "no acute changes"]
+    }
+  ],
+  "validation_scenarios": [
+    {
+      "scenario": "missing_symptoms",
+      "input": {
+        "symptoms": "",
+        "patient_info": {
+          "age": 45,
+          "gender": "Male"
+        }
+      },
+      "expected_outcome": "validation_error"
+    },
+    {
+      "scenario": "invalid_age",
+      "input": {
+        "symptoms": "Test symptoms",
+        "patient_info": {
+          "age": 150,
+          "gender": "Female"
+        }
+      },
+      "expected_outcome": "validation_warning"
+    },
+    {
+      "scenario": "minimal_valid_input",
+      "input": {
+        "symptoms": "Feeling tired and occasional headaches",
+        "patient_info": {
+          "age": 35,
+          "gender": "Other"
+        }
+      },
+      "expected_outcome": "success"
+    }
+  ],
+  "agent_test_data": {
+    "input_collection_tests": [
+      {
+        "test_name": "basic_input_validation",
+        "input": {
+          "symptoms": "Test symptoms for validation",
+          "patient_info": {
+            "age": 40,
+            "gender": "Female",
+            "existing_conditions": ["None"],
+            "medications": "",
+            "family_history": ""
+          }
+        },
+        "expected_quality_score": 0.6
+      }
+    ],
+    "preprocessing_tests": [
+      {
+        "test_name": "text_cleaning",
+        "input": "This is a test symptom description with extra    spaces and special characters!@#",
+        "expected_cleaned": "This is a test symptom description with extra spaces and special characters"
+      }
+    ],
+    "prediction_tests": [
+      {
+        "test_name": "diabetes_prediction",
+        "features": [0.6, 0.33, 0.4, 0.0, 0.6, 0.4, 0.1, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+        "expected_disease": "diabetes",
+        "expected_probability_range": [0.3, 0.8]
+      }
+    ]
+  },
+  "api_test_configurations": {
+    "openai_fallback_test": {
+      "description": "Test OpenAI fallback when API is unavailable",
+      "trigger_fallback": true,
+      "expected_behavior": "use_fallback_explanation"
+    },
+    "huggingface_fallback_test": {
+      "description": "Test HuggingFace fallback when API is unavailable", 
+      "trigger_fallback": true,
+      "expected_behavior": "use_keyword_classification"
+    }
+  },
+  "performance_benchmarks": {
+    "input_collection_time_ms": 500,
+    "preprocessing_time_ms": 2000,
+    "prediction_time_ms": 3000,
+    "explanation_time_ms": 5000,
+    "report_generation_time_ms": 1000,
+    "total_pipeline_time_ms": 12000
+  },
+  "metadata": {
+    "version": "1.0",
+    "created": "2024-01-01",
+    "description": "Sample data for testing the AI Disease Detection System",
+    "total_samples": 7,
+    "conditions_covered": [
+      "Diabetes",
+      "Heart Disease", 
+      "Stress/Anxiety",
+      "Respiratory Condition",
+      "Hypertension",
+      "Multiple Conditions",
+      "Low Risk"
+    ],
+    "usage_instructions": [
+      "Use sample_symptoms for testing the complete analysis pipeline",
+      "Use validation_scenarios for testing input validation",
+      "Use agent_test_data for individual agent testing",
+      "Use api_test_configurations for testing API fallbacks",
+      "Use performance_benchmarks for performance testing"
+    ]
+  }
+}
