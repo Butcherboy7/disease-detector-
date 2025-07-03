@@ -121,9 +121,33 @@ The application implements six specialized agents:
 - **Lab Analysis Section**: Shows extracted values and risk adjustments
 - **Confidence Indicators**: Clear display of lab-adjusted vs original predictions
 
+## Latest Enhancements (July 03, 2025)
+
+### Intelligent Diagnosis Engine Integration
+- **Structured JSON Input Support**: Accept properly formatted JSON with patient_info, symptoms, and lab_results
+- **Natural Language Reasoning**: Generate human-readable explanations like "Based on symptoms of fatigue, dizziness, and hair thinning, the system strongly suspects Iron Deficiency Anemia"
+- **Likelihood Tiers**: Categorize conditions as Very Likely (80-100%), Likely (60-80%), Moderate (40-60%), Possible (20-40%), Unlikely (<20%)
+- **Condition Grouping**: Organize results into Most Likely, Possibly Present, and Ruled Out categories
+- **Lab Value Integration**: Incorporate lab results (Hemoglobin < 11, TSH > 4.5, etc.) to boost or lower disease probabilities
+- **Rule-based Enhancement**: Advanced diagnostic rules for anemia, hypothyroidism, vitamin deficiencies, stress, diabetes, and heart disease
+
+### Enhanced User Interface
+- **Dual Input Modes**: Choose between Guided Form (recommended) or JSON Input (advanced)
+- **Structured Report Display**: Show categorized conditions with likelihood tiers and confirmation tests
+- **Urgency Assessment**: Display High/Medium/Low urgency with specific recommendations
+- **Lab-adjusted Predictions**: Visual indicators when lab values modify risk assessments
+
+### Report Generation Updates
+- **Intelligent Format**: New report template matching the structured diagnosis output
+- **Legacy Support**: Maintains backward compatibility with existing prediction format
+- **Enhanced Clinical Summary**: Includes likelihood tiers, confirmation tests, and urgency levels
+
 ## Changelog
 ```
 Changelog:
+- July 03, 2025: Added Intelligent Diagnosis Engine with structured JSON input and natural language reasoning
+- July 03, 2025: Enhanced UI with dual input modes and categorized condition display
+- July 03, 2025: Updated report generation to support new intelligent diagnosis format
 - July 03, 2025: Enhanced with symptom clustering, lab integration, and follow-up questions
 - July 03, 2025: Added comprehensive GitHub documentation (README, CONTRIBUTING)
 - July 03, 2025: Initial multi-agent architecture setup

@@ -1,0 +1,124 @@
+I want you to improve and upgrade my disease detection system in the following ways:
+
+===============================
+✅ INPUT HANDLING (STRUCTURED)
+===============================
+Accept JSON input like this:
+
+{
+  "patient_info": {
+    "name": "Mrs. Anjali D.",
+    "age": 38,
+    "gender": "female",
+    "existing_conditions": []
+  },
+  "symptoms": [
+    "fatigue", "headache", "dizziness", "palpitations", "cold hands", "brain fog"
+  ],
+  "lab_results": {
+    "Hemoglobin": "10.1 g/dL",
+    "Ferritin": "8 ng/mL",
+    "TSH": "5.8 uIU/mL",
+    "Vitamin D": "18 ng/mL"
+  }
+}
+
+Parse this input and extract:
+- Symptom cluster types (cardio, metabolic, neuro)
+- Risk factor detection (age > 45, gender, etc.)
+- Rule-based enhancements (see below)
+
+===============================
+🧠 DIAGNOSIS AND LOGIC
+===============================
+Move beyond just listing disease probabilities.
+
+1. Instead, produce a "Most Likely Conditions" section with natural language explanations like:
+
+> Based on the symptoms of fatigue, dizziness, and hair thinning, the system strongly suspects **Iron Deficiency Anemia**. This condition is especially common in women aged 30–50. Likelihood: **High**.
+
+Use tiers like:
+- Very Likely (80–100%)
+- Likely (60–80%)
+- Moderate (40–60%)
+- Possible (20–40%)
+- Unlikely (<20%)
+
+2. Group conditions into:
+- Most Likely
+- Possibly Present
+- Ruled Out
+
+3. Incorporate lab values into reasoning:
+- If Hemoglobin < 11 and Ferritin < 15 → anemia becomes “very likely”
+- If TSH > 4.5 → boost hypothyroidism
+- If Vitamin D < 20 → boost vitamin D deficiency
+
+4. Add rules to detect:
+- Anemia (fatigue, hair loss, cold hands, dizziness, low Hb/ferritin)
+- Hypothyroidism (fatigue, brain fog, cold intolerance, high TSH)
+- Nutritional deficiency (fatigue, memory, low vitamin D)
+- Stress (fatigue, palpitations, anxiety, headache)
+
+===============================
+📄 OUTPUT FORMAT
+===============================
+
+Your output should include:
+
+============================================================
+        AI-POWERED HEALTH ASSESSMENT REPORT
+============================================================
+Generated on: <timestamp>
+
+PATIENT INFORMATION
+--------------------
+Age: <age>
+Gender: <gender>
+Existing Conditions: <list>
+
+SYMPTOMS REPORTED
+-----------------
+<bullet symptoms>
+Severity Level: <score>
+Urgency Level: <low/med/high>
+
+MOST LIKELY CONDITION(S)
+------------------------
+1. Iron Deficiency Anemia
+   Likelihood: High
+   Why: Fatigue, hair thinning, cold extremities, dizziness
+   Confirm With: CBC + Ferritin test
+
+2. Hypothyroidism
+   Likelihood: Moderate
+   Why: Brain fog, fatigue, high TSH
+   Confirm With: TSH + T3/T4 test
+
+Conditions Unlikely:
+- Diabetes
+- Heart Disease
+
+AI EXPLANATION
+--------------
+Natural language summary of results, 3–5 sentences
+
+RECOMMENDATIONS
+---------------
+1. Schedule CBC & thyroid panel
+2. Track symptoms daily
+3. Eat iron-rich foods or consider supplements
+
+DISCLAIMER
+----------
+This tool provides screening insights and should not replace medical evaluation.
+
+===============================
+🧰 TECH STACK (RECOMMENDATIONS)
+===============================
+- Use JSON parsing in backend
+- Use Jinja2 templates or Python f-strings for report formatting
+- Use rule-based symptom scoring + LLM summary generator (optional)
+- Output as markdown, plain text, or PDF
+
+You can break this into steps — just confirm what you need help with next.

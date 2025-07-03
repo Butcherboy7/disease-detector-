@@ -12,6 +12,7 @@ from utils.disease_models import DiseaseModels
 from utils.api_clients import HuggingFaceClient
 from utils.symptom_clustering import SymptomClusterAnalyzer
 from utils.lab_report_analyzer import LabReportAnalyzer
+from utils.intelligent_diagnosis import IntelligentDiagnosisEngine
 
 class PredictionAgent(BaseAgent):
     """
@@ -25,6 +26,7 @@ class PredictionAgent(BaseAgent):
         self.hf_client = HuggingFaceClient()
         self.symptom_analyzer = SymptomClusterAnalyzer()
         self.lab_analyzer = LabReportAnalyzer()
+        self.intelligent_diagnosis = IntelligentDiagnosisEngine()
         
     def process(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -97,6 +99,10 @@ class PredictionAgent(BaseAgent):
             # Apply lab-based risk adjustments
             adjusted_predictions = self._apply_lab_adjustments(predictions, lab_analysis)
             
+            # Run intelligent diagnosis with structured input
+            structured_input = self._create_structured_input(preprocessed_data, adjusted_predictions)
+            intelligent_diagnosis_result = self.intelligent_diagnosis.analyze_structured_input(structured_input)
+            
             # Calculate overall risk assessment
             overall_risk = self._calculate_overall_risk_enhanced(adjusted_predictions, preprocessed_data, lab_analysis or {})
             
@@ -111,6 +117,7 @@ class PredictionAgent(BaseAgent):
                 'symptom_cluster_analysis': symptom_cluster_analysis,
                 'lab_analysis': lab_analysis,
                 'follow_up_questions': follow_up_questions,
+                'intelligent_diagnosis': intelligent_diagnosis_result,
                 'feature_vector': feature_vector.tolist() if isinstance(feature_vector, np.ndarray) else feature_vector,
                 'prediction_metadata': {
                     'num_predictions': len(adjusted_predictions),
@@ -960,3 +967,60 @@ class PredictionAgent(BaseAgent):
             'severity_level': 3 if probability > 0.6 else 2 if probability > 0.4 else 1,
             'urgency_level': urgency_level
         }
+    
+    def _create_structured_input(self, preprocessed_data: Dict[str, Any], predictions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Create structured input for intelligent diagnosis engine"""
+        try:
+            # Extract patient info
+            patient_info = preprocessed_data.get('patient_info', {})
+            
+            # Extract symptoms as a list
+            symptoms_data = preprocessed_data.get('processed_symptoms', {})
+            symptoms_entities = symptoms_data.get('entities', [])
+            symptom_list = [entity['text'].lower() for entity in symptoms_entities if entity.get('type') == 'symptom']
+            
+            # Extract lab results from processed files
+            lab_results = {}
+            processed_files = preprocessed_data.get('processed_files', [])
+            for file_data in processed_files:
+                if file_data.get('category') in ['lab_report', 'blood_test', 'medical_report']:
+                    file_text = file_data.get('extracted_text', '')
+                    if file_text:
+                        # Extract lab values from text using simple regex patterns
+                        import re
+                        # Common lab patterns
+                        patterns = {
+                            'hemoglobin': r'hemoglobin[:\s]*(\d+\.?\d*)\s*g/dl',
+                            'ferritin': r'ferritin[:\s]*(\d+\.?\d*)\s*ng/ml',
+                            'tsh': r'tsh[:\s]*(\d+\.?\d*)\s*uiu/ml',
+                            'vitamin_d': r'vitamin\s*d[:\s]*(\d+\.?\d*)\s*ng/ml',
+                            'glucose': r'glucose[:\s]*(\d+\.?\d*)\s*mg/dl',
+                            'cholesterol': r'cholesterol[:\s]*(\d+\.?\d*)\s*mg/dl'
+                        }
+                        
+                        for lab_name, pattern in patterns.items():
+                            match = re.search(pattern, file_text.lower())
+                            if match:
+                                lab_results[lab_name.title()] = f"{match.group(1)} {lab_name.split('_')[0]}"
+            
+            # Create structured input
+            structured_input = {
+                'patient_info': {
+                    'name': patient_info.get('name', 'Patient'),
+                    'age': patient_info.get('age', 0),
+                    'gender': patient_info.get('gender', 'unknown'),
+                    'existing_conditions': patient_info.get('existing_conditions', [])
+                },
+                'symptoms': symptom_list,
+                'lab_results': lab_results
+            }
+            
+            return structured_input
+            
+        except Exception as e:
+            self.logger.warning(f"Failed to create structured input: {str(e)}")
+            return {
+                'patient_info': {'name': 'Patient', 'age': 0, 'gender': 'unknown', 'existing_conditions': []},
+                'symptoms': [],
+                'lab_results': {}
+            }

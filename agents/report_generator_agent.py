@@ -156,23 +156,92 @@ class ReportGeneratorAgent(BaseAgent):
         
         report.append("")
         
-        # Analysis Results
-        report.append("ANALYSIS RESULTS")
-        report.append("-" * 16)
-        
-        # Overall Risk Assessment
-        risk_assessment = report_data.get('risk_assessment', {})
-        if risk_assessment:
-            report.append(f"Overall Risk Level: {risk_assessment.get('level', 'Unknown')}")
-            report.append(f"Risk Score: {risk_assessment.get('score', 0):.2f}")
+        # Intelligent Diagnosis Results (New Enhanced Format)
+        intelligent_diagnosis = report_data.get('intelligent_diagnosis', {})
+        if intelligent_diagnosis:
+            report.append("INTELLIGENT HEALTH ASSESSMENT")
+            report.append("-" * 30)
             
-            primary_concerns = risk_assessment.get('primary_concerns', [])
-            if primary_concerns:
-                report.append(f"Primary Concerns: {', '.join(primary_concerns)}")
+            # Primary assessment
+            explanations = intelligent_diagnosis.get('explanations', {})
+            if explanations.get('main'):
+                report.append("Primary Assessment:")
+                report.append(explanations['main'])
+                report.append("")
             
-            report.append(f"General Recommendation: {risk_assessment.get('recommendation', 'Consult healthcare provider')}")
+            # Categorized conditions
+            categorized = intelligent_diagnosis.get('categorized_conditions', {})
+            
+            # Most likely conditions
+            most_likely = categorized.get('most_likely', [])
+            if most_likely:
+                report.append("MOST LIKELY CONDITIONS")
+                report.append("-" * 22)
+                for i, condition in enumerate(most_likely, 1):
+                    report.append(f"{i}. {condition['condition_name']}")
+                    report.append(f"   Likelihood: {condition['likelihood_tier']}")
+                    report.append(f"   Why: {condition['description']}")
+                    report.append(f"   Confirm With: {', '.join(condition['confirmation_tests'])}")
+                    report.append("")
+            
+            # Possibly present conditions
+            possibly_present = categorized.get('possibly_present', [])
+            if possibly_present:
+                report.append("POSSIBLY PRESENT CONDITIONS")
+                report.append("-" * 27)
+                for condition in possibly_present:
+                    report.append(f"• {condition['condition_name']} ({condition['likelihood_tier']})")
+                report.append("")
+            
+            # Ruled out conditions
+            ruled_out = categorized.get('ruled_out', [])
+            if ruled_out:
+                report.append("CONDITIONS UNLIKELY")
+                report.append("-" * 19)
+                for condition in ruled_out:
+                    report.append(f"• {condition['condition_name']}")
+                report.append("")
+            
+            # Urgency assessment
+            urgency = intelligent_diagnosis.get('urgency_level', 'Unknown')
+            report.append("URGENCY ASSESSMENT")
+            report.append("-" * 18)
+            report.append(f"Urgency Level: {urgency}")
+            if urgency == 'High':
+                report.append("⚠️ Consider immediate medical attention")
+            elif urgency == 'Medium':
+                report.append("Schedule appointment within days")
+            else:
+                report.append("Routine follow-up appropriate")
+            report.append("")
+            
+            # Intelligent recommendations
+            recommendations = intelligent_diagnosis.get('recommendations', [])
+            if recommendations:
+                report.append("NEXT STEPS")
+                report.append("-" * 10)
+                for i, rec in enumerate(recommendations, 1):
+                    report.append(f"{i}. {rec}")
+                report.append("")
         
-        report.append("")
+        # Traditional Analysis Results (Legacy Format)
+        else:
+            report.append("ANALYSIS RESULTS")
+            report.append("-" * 16)
+            
+            # Overall Risk Assessment
+            risk_assessment = report_data.get('risk_assessment', {})
+            if risk_assessment:
+                report.append(f"Overall Risk Level: {risk_assessment.get('level', 'Unknown')}")
+                report.append(f"Risk Score: {risk_assessment.get('score', 0):.2f}")
+                
+                primary_concerns = risk_assessment.get('primary_concerns', [])
+                if primary_concerns:
+                    report.append(f"Primary Concerns: {', '.join(primary_concerns)}")
+                
+                report.append(f"General Recommendation: {risk_assessment.get('recommendation', 'Consult healthcare provider')}")
+            
+            report.append("")
         
         # Detailed Predictions
         predictions = report_data.get('predictions', [])

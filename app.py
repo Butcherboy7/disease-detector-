@@ -1,3 +1,61 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import streamlit as st
 import requests
 import json
@@ -62,7 +120,85 @@ def main():
 def input_collection_step():
     st.header("📝 Step 1: Input Collection")
     
-    # Symptoms input
+    # Input mode selection
+    input_mode = st.radio(
+        "Choose Input Method:",
+        ["🖱️ Guided Form (Recommended)", "📋 JSON Input (Advanced)"],
+        horizontal=True
+    )
+    
+    if input_mode == "📋 JSON Input (Advanced)":
+        st.subheader("JSON Structured Input")
+        st.info("Use this format for structured medical data input:")
+        
+        example_json = {
+            "patient_info": {
+                "name": "Mrs. Anjali D.",
+                "age": 38,
+                "gender": "female",
+                "existing_conditions": []
+            },
+            "symptoms": [
+                "fatigue", "headache", "dizziness", "palpitations", "cold hands", "brain fog"
+            ],
+            "lab_results": {
+                "Hemoglobin": "10.1 g/dL",
+                "Ferritin": "8 ng/mL",
+                "TSH": "5.8 uIU/mL",
+                "Vitamin D": "18 ng/mL"
+            }
+        }
+        
+        with st.expander("📋 View Example JSON Format"):
+            st.json(example_json)
+        
+        json_input = st.text_area(
+            "Enter your structured data as JSON:",
+            height=300,
+            placeholder=json.dumps(example_json, indent=2)
+        )
+        
+        if st.button("🧠 Analyze JSON Input", type="primary", use_container_width=True):
+            try:
+                # Parse JSON input
+                structured_data = json.loads(json_input)
+                
+                # Validate required fields
+                if not all(key in structured_data for key in ['patient_info', 'symptoms']):
+                    st.error("JSON must contain 'patient_info' and 'symptoms' fields")
+                    return
+                
+                # Process directly with intelligent diagnosis
+                from utils.intelligent_diagnosis import IntelligentDiagnosisEngine
+                diagnosis_engine = IntelligentDiagnosisEngine()
+                
+                with st.spinner("Processing structured input..."):
+                    intelligent_result = diagnosis_engine.analyze_structured_input(structured_data)
+                    
+                    # Store results and skip to results display
+                    st.session_state.analysis_data = {
+                        'input_data': structured_data,
+                        'prediction_result': {
+                            'intelligent_diagnosis': intelligent_result,
+                            'predictions': [],
+                            'overall_risk': {'level': 'Low', 'score': 0.1}
+                        },
+                        'explanation_result': {}
+                    }
+                    
+                    st.session_state.current_step = 4  # Skip to results
+                    st.success("✅ JSON input processed successfully!")
+                    time.sleep(1)
+                    st.rerun()
+                    
+            except json.JSONDecodeError as e:
+                st.error(f"Invalid JSON format: {str(e)}")
+            except Exception as e:
+                st.error(f"Processing error: {str(e)}")
+        
+        return
+    
+    # Guided Form Input (Original)
     st.subheader("Describe Your Symptoms")
     symptoms = st.text_area(
         "Please describe your symptoms in detail:",
@@ -327,6 +463,73 @@ def results_step():
             with st.expander("📋 Detailed Pattern Insights"):
                 for insight in cluster_analysis['insights']:
                     st.write(f"• {insight}")
+    
+    # Display Intelligent Diagnosis Results
+    if 'intelligent_diagnosis' in prediction:
+        intelligent_diagnosis = prediction['intelligent_diagnosis']
+        
+        st.subheader("🧠 AI-Powered Health Assessment")
+        
+        # Display main explanation
+        if 'explanations' in intelligent_diagnosis and 'main' in intelligent_diagnosis['explanations']:
+            st.markdown("### Primary Assessment")
+            st.info(intelligent_diagnosis['explanations']['main'])
+        
+        # Display categorized conditions
+        if 'categorized_conditions' in intelligent_diagnosis:
+            categorized = intelligent_diagnosis['categorized_conditions']
+            
+            # Most Likely Conditions
+            if categorized.get('most_likely'):
+                st.markdown("### 🎯 Most Likely Conditions")
+                for i, condition in enumerate(categorized['most_likely'], 1):
+                    with st.container():
+                        col1, col2, col3 = st.columns([3, 1, 2])
+                        
+                        with col1:
+                            st.write(f"**{i}. {condition['condition_name']}**")
+                            st.caption(f"Why: {condition['description']}")
+                        
+                        with col2:
+                            likelihood = condition['likelihood_tier']
+                            if likelihood in ['Very Likely', 'Likely']:
+                                st.error(f"🔴 {likelihood}")
+                            else:
+                                st.warning(f"🟡 {likelihood}")
+                        
+                        with col3:
+                            st.write(f"**Confirm with:** {', '.join(condition['confirmation_tests'])}")
+                        
+                        st.divider()
+            
+            # Possibly Present Conditions
+            if categorized.get('possibly_present'):
+                st.markdown("### 🤔 Possibly Present Conditions")
+                for condition in categorized['possibly_present']:
+                    st.write(f"• **{condition['condition_name']}** ({condition['likelihood_tier']})")
+            
+            # Ruled Out Conditions
+            if categorized.get('ruled_out'):
+                with st.expander("❌ Conditions Unlikely"):
+                    for condition in categorized['ruled_out']:
+                        st.write(f"• {condition['condition_name']}")
+        
+        # Display urgency level
+        if 'urgency_level' in intelligent_diagnosis:
+            urgency = intelligent_diagnosis['urgency_level']
+            st.markdown("### ⚡ Urgency Assessment")
+            if urgency == 'High':
+                st.error(f"🚨 **{urgency} Urgency** - Consider immediate medical attention")
+            elif urgency == 'Medium':
+                st.warning(f"⚠️ **{urgency} Urgency** - Schedule appointment within days")
+            else:
+                st.success(f"✅ **{urgency} Urgency** - Routine follow-up appropriate")
+        
+        # Display recommendations
+        if 'recommendations' in intelligent_diagnosis:
+            st.markdown("### 📋 Next Steps")
+            for i, rec in enumerate(intelligent_diagnosis['recommendations'], 1):
+                st.write(f"{i}. {rec}")
     
     # Display lab analysis if available
     if 'lab_analysis' in prediction and prediction['lab_analysis'].get('extracted_values'):
