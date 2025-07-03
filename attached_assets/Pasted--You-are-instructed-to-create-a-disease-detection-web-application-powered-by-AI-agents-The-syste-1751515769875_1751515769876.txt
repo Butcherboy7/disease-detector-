@@ -1,0 +1,48 @@
+
+
+You are instructed to create a disease detection web application powered by AI agents. The system should be capable of detecting common diseases (such as diabetes, heart conditions, and stress) by analyzing user inputs, which may include:
+
+* Textual symptoms (manually entered)
+* Uploaded documents (like X-rays, blood reports, etc.)
+* Optional: wearable data (heart rate, sleep, SpO₂), if provided
+
+The implementation is expected to be agentic in nature, where different agents handle specialized tasks such as:
+
+1. **Input Collection Agent:** Gathers user input and uploads (PDFs, images, or text).
+2. **Preprocessing Agent:** Cleans, parses, or extracts relevant information from documents or raw inputs.
+3. **Prediction Agent:** Uses pre-trained or lightweight ML models or APIs (like HuggingFace for tabular/image data) to predict disease likelihood.
+4. **Explainability Agent:** Explains the model prediction in simple terms (using GPT-4 or BioGPT APIs if needed).
+5. **Report Generator Agent:** Creates a downloadable or shareable health report.
+6. **(Optional) Feedback Agent:** Allows users to provide feedback on prediction accuracy.
+
+The following stack is suggested:
+
+* **Frontend:** HTML/CSS + basic JS or Streamlit (for ease of UI).
+* **Backend:** Python (Flask or FastAPI).
+* **AI Models/APIs:**
+
+  * Hugging Face APIs for lightweight disease prediction models
+  * Google Health APIs or open datasets (if free and applicable)
+  * OpenAI GPT-4 (or GPT-3.5) for explanation/report generation
+  * BioGPT (if available via API) for domain-specific insights
+
+The system does not assume continuous internet access to fetch live model predictions, so include offline fallback logic or downloadable models when necessary.
+
+File upload and parsing should be modular and robust. X-ray/image files may be analyzed using open-source computer vision models (e.g., CheXNet). For textual data, simple symptom classifiers or rule-based keyword tagging can be used.
+
+A clean UI/UX with multiple steps or agent prompts is expected. The entire setup should be modular, and each agent’s role should be clearly defined with explainable logs or printed reasoning wherever feasible.
+
+Please generate the project with the following:
+
+* Full backend logic
+* Basic but clean UI
+* Agent-to-agent communication logic
+* API calls 
+* Modular structure with comments
+* Example test inputs or files
+* Clearly defined README with setup and usage  for github 
+ask user for necessary api keys if needed 
+
+---
+
+Let me know if you want a shorter version, or if you also want to specify that **Replit AI agents** should scaffold it using their **autonomous agent feature** (like "code generation agent" + "debugging agent").
