@@ -1,0 +1,130 @@
+🎯 OBJECTIVE:
+Build a realistic AI-powered health screening assistant for a hackathon. The app should:
+- Accept PDF files of mock medical reports (symptoms, lab results)
+- Extract real data from the PDFs (OCR or text parsing)
+- Analyze symptoms + lab values
+- Output likely diseases in clear, medical-style language (not just "possibly present")
+- Avoid fake or vague results like "Vitamin D Deficiency (Possible)" unless justified
+
+=====================================================
+📥 INPUT STRUCTURE (from uploaded PDF or JSON)
+=====================================================
+
+Expect data in either:
+1. JSON form:
+{
+  "patient_info": {
+    "age": 42,
+    "gender": "female"
+  },
+  "symptoms": [
+    "Fatigue", "Cold hands and feet", "Dry skin", "Brain fog", "Irregular periods"
+  ],
+  "lab_results": {
+    "TSH": "6.2 uIU/mL",
+    "T4": "4.5 µg/dL",
+    "Hemoglobin": "12.3 g/dL"
+  }
+}
+
+OR
+
+2. Extract from PDF:
+- Parse bullet lists or sections like "Reported Symptoms" or "Lab Results"
+- Use `pdfplumber`, `PyMuPDF`, or fallback to `pytesseract` OCR for scanned files
+
+=====================================================
+🧠 ANALYSIS LOGIC (REALISTIC & CONDITION-BASED)
+=====================================================
+
+Use rule-based + LLM-style inference to map symptoms + labs → conditions. Examples:
+
+🔹 **Hypothyroidism**
+- Symptoms: fatigue, cold intolerance, dry skin, brain fog, weight gain, menstrual irregularities
+- Labs: TSH > 4.5, T4 < 5.0
+→ Mark as "Very Likely"
+
+🔹 **Iron Deficiency Anemia**
+- Symptoms: fatigue, dizziness, hair loss, cold extremities, palpitations
+- Labs: Hemoglobin < 11, Ferritin < 15
+→ Mark as "Likely"
+
+🔹 **Diabetes**
+- Symptoms: excessive thirst, frequent urination, blurred vision
+- Labs: Fasting Glucose > 126, HbA1c > 6.5
+→ Mark as "Likely"
+
+🔹 **Stress/Anxiety**
+- Symptoms only, no lab markers: palpitations, headache, brain fog, insomnia
+→ Mark as "Possible" unless supported by others
+
+=====================================================
+✅ OUTPUT STRUCTURE (PROFESSIONAL)
+=====================================================
+
+Return the result in a medical-style summary like:
+
+------------------------------------------------------
+🔍 MOST LIKELY CONDITION(S)
+
+🩺 **Primary Diagnosis: Hypothyroidism**
+- Likelihood: Very High
+- Reason: TSH = 6.2, T4 = 4.5, fatigue + cold intolerance + brain fog
+
+🩺 **Secondary Possibility: Anemia**
+- Likelihood: Moderate
+- Reason: fatigue + borderline hemoglobin
+
+❌ Conditions Unlikely:
+- Diabetes: no thirst or urination
+- Heart Disease: no chest pain or SOB
+
+🧪 Recommended Tests:
+- T3, Thyroid Antibodies
+- Repeat CBC in 1 month
+
+📋 Advice:
+- Schedule endocrinologist visit
+- Track symptoms weekly
+
+⚠️ Disclaimer: This tool is for educational purposes only. Not a substitute for medical advice.
+------------------------------------------------------
+
+=====================================================
+⚙️ HOW TO IMPLEMENT
+=====================================================
+
+1. 📤 Input
+   - Use Streamlit or Flask to accept file or form input
+   - Parse with `pdfplumber` or JSON
+
+2. 🔍 Extraction
+   - Extract structured symptoms and labs
+   - Normalize all values (convert mg/dL, uIU/mL etc.)
+
+3. 🧠 Inference Engine
+   - Use rule-based logic (symptom-lab-condition mapping)
+   - Optional: Fine-tuned LLM (GPT-4, BioGPT, ClinicalBERT)
+
+4. 📄 Output Generator
+   - Use Python template (f-string or `jinja2`) to format report
+   - Export to Markdown or PDF (via `reportlab` or `pdfkit`)
+
+=====================================================
+🧪 TEST CASES TO INCLUDE
+=====================================================
+
+Case 1: Hypothyroidism  
+Case 2: Anemia  
+Case 3: PCOS (optional)  
+Case 4: Diabetes  
+Case 5: Stress / Lifestyle Burnout
+
+=====================================================
+🚀 GOAL:
+Make the demo look **as medically real as possible** by combining:
+- Real symptom patterns
+- Realistic labs
+- Structured outputs that resemble doctor notes
+
+Avoid fake percentages and meaningless outputs.

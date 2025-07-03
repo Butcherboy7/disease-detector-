@@ -61,6 +61,7 @@ import requests
 import json
 import time
 import threading
+from datetime import datetime
 from pathlib import Path
 import base64
 from io import BytesIO
@@ -168,18 +169,19 @@ def input_collection_step():
                     st.error("JSON must contain 'patient_info' and 'symptoms' fields")
                     return
                 
-                # Process directly with intelligent diagnosis
-                from utils.intelligent_diagnosis import IntelligentDiagnosisEngine
-                diagnosis_engine = IntelligentDiagnosisEngine()
+                # Process directly with medical analysis
+                from utils.medical_analysis_engine import MedicalAnalysisEngine
+                analysis_engine = MedicalAnalysisEngine()
                 
                 with st.spinner("Processing structured input..."):
-                    intelligent_result = diagnosis_engine.analyze_structured_input(structured_data)
+                    medical_result = analysis_engine.analyze_medical_data(structured_data)
                     
                     # Store results and skip to results display
                     st.session_state.analysis_data = {
                         'input_data': structured_data,
+                        'medical_analysis': medical_result,
                         'prediction_result': {
-                            'intelligent_diagnosis': intelligent_result,
+                            'medical_assessment': medical_result,
                             'predictions': [],
                             'overall_risk': {'level': 'Low', 'score': 0.1}
                         },
@@ -229,6 +231,52 @@ def input_collection_step():
         accept_multiple_files=True,
         type=['pdf', 'jpg', 'jpeg', 'png', 'dcm']
     )
+    
+    # Quick PDF Analysis
+    if uploaded_files:
+        st.subheader("🔍 Quick PDF Analysis")
+        st.info("Upload a PDF medical report to automatically extract symptoms and lab results")
+        
+        if st.button("🧠 Analyze PDF Report", type="secondary"):
+            for file in uploaded_files:
+                if file.type == "application/pdf":
+                    try:
+                        from utils.simple_pdf_extractor import SimplePDFExtractor
+                        extractor = SimplePDFExtractor()
+                        
+                        with st.spinner(f"Analyzing {file.name}..."):
+                            extracted_data = extractor.extract_from_pdf(file)
+                            
+                            if 'error' in extracted_data:
+                                st.error(f"Could not extract from {file.name}: {extracted_data['error']}")
+                                continue
+                            
+                            # Process with medical analysis
+                            from utils.medical_analysis_engine import MedicalAnalysisEngine
+                            analysis_engine = MedicalAnalysisEngine()
+                            medical_result = analysis_engine.analyze_medical_data(extracted_data)
+                            
+                            # Store results and go to analysis display
+                            st.session_state.analysis_data = {
+                                'input_data': extracted_data,
+                                'medical_analysis': medical_result,
+                                'pdf_extraction': extracted_data,
+                                'prediction_result': {
+                                    'medical_assessment': medical_result.get('medical_assessment', {}),
+                                    'predictions': [],
+                                    'overall_risk': {'level': 'Unknown', 'score': 0.0}
+                                },
+                                'explanation_result': {}
+                            }
+                            
+                            st.session_state.current_step = 4  # Skip to results
+                            st.success(f"✅ Successfully analyzed {file.name}")
+                            time.sleep(1)
+                            st.rerun()
+                    
+                    except Exception as e:
+                        st.error(f"Analysis failed for {file.name}: {str(e)}")
+                        continue
     
     # Wearable data (optional)
     st.subheader("📱 Wearable Data (Optional)")
@@ -464,72 +512,111 @@ def results_step():
                 for insight in cluster_analysis['insights']:
                     st.write(f"• {insight}")
     
-    # Display Intelligent Diagnosis Results
-    if 'intelligent_diagnosis' in prediction:
-        intelligent_diagnosis = prediction['intelligent_diagnosis']
+    # Display Professional Medical Analysis Results
+    if 'medical_assessment' in prediction:
+        medical_analysis = prediction['medical_assessment']
         
-        st.subheader("🧠 AI-Powered Health Assessment")
+        st.subheader("🩺 Professional Medical Assessment")
         
-        # Display main explanation
-        if 'explanations' in intelligent_diagnosis and 'main' in intelligent_diagnosis['explanations']:
-            st.markdown("### Primary Assessment")
-            st.info(intelligent_diagnosis['explanations']['main'])
+        # Patient Summary
+        if 'patient_summary' in medical_analysis:
+            st.info(f"**Patient:** {medical_analysis['patient_summary']}")
         
-        # Display categorized conditions
-        if 'categorized_conditions' in intelligent_diagnosis:
-            categorized = intelligent_diagnosis['categorized_conditions']
+        # Primary Diagnosis
+        primary = medical_analysis.get('primary_diagnosis')
+        if primary:
+            st.markdown("### 🔍 Most Likely Condition")
             
-            # Most Likely Conditions
-            if categorized.get('most_likely'):
-                st.markdown("### 🎯 Most Likely Conditions")
-                for i, condition in enumerate(categorized['most_likely'], 1):
-                    with st.container():
-                        col1, col2, col3 = st.columns([3, 1, 2])
-                        
-                        with col1:
-                            st.write(f"**{i}. {condition['condition_name']}**")
-                            st.caption(f"Why: {condition['description']}")
-                        
-                        with col2:
-                            likelihood = condition['likelihood_tier']
-                            if likelihood in ['Very Likely', 'Likely']:
-                                st.error(f"🔴 {likelihood}")
-                            else:
-                                st.warning(f"🟡 {likelihood}")
-                        
-                        with col3:
-                            st.write(f"**Confirm with:** {', '.join(condition['confirmation_tests'])}")
-                        
-                        st.divider()
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                st.write(f"**🩺 Primary Diagnosis: {primary['condition_name']}**")
+                st.write(f"**Category:** {primary['category']}")
+                if primary['evidence']:
+                    st.write(f"**Clinical Evidence:** {'; '.join(primary['evidence'])}")
             
-            # Possibly Present Conditions
-            if categorized.get('possibly_present'):
-                st.markdown("### 🤔 Possibly Present Conditions")
-                for condition in categorized['possibly_present']:
-                    st.write(f"• **{condition['condition_name']}** ({condition['likelihood_tier']})")
+            with col2:
+                likelihood = primary['likelihood']
+                if likelihood in ['Very High', 'High']:
+                    st.error(f"🔴 Likelihood: {likelihood}")
+                elif likelihood == 'Moderate':
+                    st.warning(f"🟡 Likelihood: {likelihood}")
+                else:
+                    st.info(f"🔵 Likelihood: {likelihood}")
             
-            # Ruled Out Conditions
-            if categorized.get('ruled_out'):
-                with st.expander("❌ Conditions Unlikely"):
-                    for condition in categorized['ruled_out']:
-                        st.write(f"• {condition['condition_name']}")
+            st.write(f"**Specialist Consultation:** {primary['specialist']}")
+            st.write(f"**Recommended Tests:** {', '.join(primary['confirmation_tests'])}")
+            st.divider()
         
-        # Display urgency level
-        if 'urgency_level' in intelligent_diagnosis:
-            urgency = intelligent_diagnosis['urgency_level']
-            st.markdown("### ⚡ Urgency Assessment")
-            if urgency == 'High':
-                st.error(f"🚨 **{urgency} Urgency** - Consider immediate medical attention")
-            elif urgency == 'Medium':
-                st.warning(f"⚠️ **{urgency} Urgency** - Schedule appointment within days")
-            else:
-                st.success(f"✅ **{urgency} Urgency** - Routine follow-up appropriate")
+        # Differential Diagnoses
+        differential = medical_analysis.get('differential_diagnoses', [])
+        if differential:
+            st.markdown("### 🤔 Differential Considerations")
+            for i, diff in enumerate(differential, 1):
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.write(f"**{i}. {diff['condition_name']}**")
+                    if diff['evidence']:
+                        st.caption(f"Evidence: {'; '.join(diff['evidence'])}")
+                with col2:
+                    st.write(f"**{diff['likelihood']}**")
         
-        # Display recommendations
-        if 'recommendations' in intelligent_diagnosis:
-            st.markdown("### 📋 Next Steps")
-            for i, rec in enumerate(intelligent_diagnosis['recommendations'], 1):
-                st.write(f"{i}. {rec}")
+        # Unlikely Conditions
+        unlikely = medical_analysis.get('unlikely_conditions', [])
+        if unlikely:
+            with st.expander("❌ Conditions Ruled Out"):
+                for condition in unlikely:
+                    st.write(f"• {condition}")
+        
+        # Lab Interpretation
+        if st.session_state.analysis_data.get('medical_analysis', {}).get('lab_interpretation'):
+            lab_interp = st.session_state.analysis_data['medical_analysis']['lab_interpretation']
+            st.markdown("### 🧪 Laboratory Findings")
+            for lab, interpretation in lab_interp.items():
+                st.write(f"• **{lab.upper()}:** {interpretation}")
+        
+        # Medical Recommendations
+        recommendations = medical_analysis.get('recommendations', {})
+        if recommendations:
+            st.markdown("### 📋 Clinical Recommendations")
+            
+            if recommendations.get('immediate_tests'):
+                st.write("**Immediate Testing:**")
+                for test in recommendations['immediate_tests']:
+                    st.write(f"• {test}")
+            
+            if recommendations.get('specialist_referral'):
+                st.write("**Specialist Consultation:**")
+                for referral in recommendations['specialist_referral']:
+                    st.write(f"• {referral}")
+            
+            if recommendations.get('follow_up'):
+                st.write("**Follow-up Plan:**")
+                for follow in recommendations['follow_up']:
+                    st.write(f"• {follow}")
+    
+    # Display Professional Medical Report
+    elif 'medical_analysis' in st.session_state.analysis_data:
+        medical_data = st.session_state.analysis_data['medical_analysis']
+        
+        if 'medical_assessment' in medical_data:
+            assessment = medical_data['medical_assessment']
+            
+            st.subheader("🩺 Medical Screening Report")
+            
+            # Display formatted report
+            from utils.medical_analysis_engine import MedicalAnalysisEngine
+            engine = MedicalAnalysisEngine()
+            formatted_report = engine.format_medical_report(medical_data)
+            
+            st.text_area("Full Medical Report", formatted_report, height=400)
+            
+            # Download report
+            st.download_button(
+                label="📄 Download Medical Report",
+                data=formatted_report,
+                file_name=f"medical_assessment_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain"
+            )
     
     # Display lab analysis if available
     if 'lab_analysis' in prediction and prediction['lab_analysis'].get('extracted_values'):
