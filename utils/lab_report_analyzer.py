@@ -55,6 +55,17 @@ class LabReportAnalyzer:
             'inflammatory': {
                 'crp': {'min': 0, 'max': 3.0, 'unit': 'mg/L'},
                 'esr': {'min': 0, 'max': 30, 'unit': 'mm/hr'}
+            },
+            'iron_studies': {
+                'ferritin': {'min': 15, 'max': 150, 'unit': 'ng/mL'},
+                'iron': {'min': 60, 'max': 170, 'unit': 'mcg/dL'},
+                'transferrin_saturation': {'min': 20, 'max': 50, 'unit': '%'},
+                'tibc': {'min': 250, 'max': 450, 'unit': 'mcg/dL'}
+            },
+            'vitamins': {
+                'vitamin_d': {'min': 30, 'max': 100, 'unit': 'ng/mL'},
+                'vitamin_b12': {'min': 200, 'max': 900, 'unit': 'pg/mL'},
+                'folate': {'min': 3.0, 'max': 20, 'unit': 'ng/mL'}
             }
         }
         
@@ -106,6 +117,19 @@ class LabReportAnalyzer:
                 r'crp[:\s]*(\d+\.?\d*)',
                 r'c-reactive protein[:\s]*(\d+\.?\d*)',
                 r'esr[:\s]*(\d+\.?\d*)'
+            ],
+            'iron_studies': [
+                r'ferritin[:\s]*(\d+\.?\d*)',
+                r'iron[:\s]*(\d+\.?\d*)',
+                r'transferrin saturation[:\s]*(\d+\.?\d*)',
+                r'tibc[:\s]*(\d+\.?\d*)'
+            ],
+            'vitamins': [
+                r'vitamin d[:\s]*(\d+\.?\d*)',
+                r'25-hydroxyvitamin d[:\s]*(\d+\.?\d*)',
+                r'vitamin b12[:\s]*(\d+\.?\d*)',
+                r'b12[:\s]*(\d+\.?\d*)',
+                r'folate[:\s]*(\d+\.?\d*)'
             ]
         }
         
@@ -132,6 +156,21 @@ class LabReportAnalyzer:
                 'liver_function': {'weight': 0.6, 'threshold_multiplier': 2.0},
                 'inflammatory': {'weight': 0.2, 'threshold_multiplier': 1.4},
                 'cholesterol': {'weight': 0.2, 'threshold_multiplier': 1.3}
+            },
+            'iron_deficiency_anemia': {
+                'iron_studies': {'weight': 0.5, 'threshold_multiplier': 1.8},
+                'cbc': {'weight': 0.4, 'threshold_multiplier': 1.6},
+                'vitamins': {'weight': 0.1, 'threshold_multiplier': 1.2}
+            },
+            'hypothyroidism': {
+                'thyroid': {'weight': 0.7, 'threshold_multiplier': 2.0},
+                'cholesterol': {'weight': 0.2, 'threshold_multiplier': 1.3},
+                'glucose': {'weight': 0.1, 'threshold_multiplier': 1.2}
+            },
+            'vitamin_d_deficiency': {
+                'vitamins': {'weight': 0.6, 'threshold_multiplier': 1.8},
+                'inflammatory': {'weight': 0.2, 'threshold_multiplier': 1.3},
+                'cbc': {'weight': 0.2, 'threshold_multiplier': 1.2}
             }
         }
     

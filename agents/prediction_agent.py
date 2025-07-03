@@ -73,6 +73,19 @@ class PredictionAgent(BaseAgent):
             respiratory_pred = self._predict_respiratory_conditions(feature_vector, preprocessed_data)
             predictions.append(respiratory_pred)
             
+            # New disease predictions
+            anemia_pred = self._predict_iron_deficiency_anemia(feature_vector, preprocessed_data)
+            predictions.append(anemia_pred)
+            
+            hypothyroid_pred = self._predict_hypothyroidism(feature_vector, preprocessed_data)
+            predictions.append(hypothyroid_pred)
+            
+            vitd_pred = self._predict_vitamin_d_deficiency(feature_vector, preprocessed_data)
+            predictions.append(vitd_pred)
+            
+            autonomic_pred = self._predict_autonomic_dysfunction(feature_vector, preprocessed_data)
+            predictions.append(autonomic_pred)
+            
             # Use HuggingFace models for additional predictions if available
             hf_predictions = self._get_huggingface_predictions(preprocessed_data)
             if hf_predictions:
@@ -695,3 +708,255 @@ class PredictionAgent(BaseAgent):
             result['lab_multiplier'] = lab_multiplier
         
         return result
+    
+    def _predict_iron_deficiency_anemia(self, feature_vector: np.ndarray, preprocessed_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Predict iron deficiency anemia likelihood."""
+        self.log_processing_step("Predicting iron deficiency anemia")
+        
+        # Key symptoms for iron deficiency anemia
+        anemia_symptoms = [
+            'fatigue', 'weakness', 'cold_hands', 'cold_feet', 'dizziness',
+            'palpitations', 'hair_thinning', 'brittle_nails', 'restless_legs',
+            'ice_cravings', 'pale_skin', 'shortness_of_breath', 'brain_fog'
+        ]
+        
+        score = 0.0
+        evidence = []
+        patient_info = preprocessed_data.get('patient_info', {})
+        symptoms_data = preprocessed_data.get('processed_symptoms', {})
+        extracted_entities = symptoms_data.get('entities', [])
+        
+        # Symptom matching
+        symptom_keywords = [entity['text'].lower() for entity in extracted_entities if entity.get('type') == 'symptom']
+        
+        for symptom in anemia_symptoms:
+            if any(symptom.replace('_', ' ') in keyword or keyword in symptom for keyword in symptom_keywords):
+                if symptom in ['ice_cravings', 'restless_legs', 'brittle_nails']:
+                    score += 0.15  # High specificity symptoms
+                    evidence.append(f"Classic anemia symptom: {symptom.replace('_', ' ')}")
+                elif symptom in ['cold_hands', 'cold_feet', 'pale_skin']:
+                    score += 0.12  # Specific symptoms
+                    evidence.append(f"Anemia indicator: {symptom.replace('_', ' ')}")
+                else:
+                    score += 0.08  # General symptoms
+                    evidence.append(f"Common symptom: {symptom.replace('_', ' ')}")
+        
+        # Age and gender risk factors
+        age = patient_info.get('age', 0)
+        gender = patient_info.get('gender', '').lower()
+        
+        if gender == 'female':
+            score += 0.1
+            evidence.append("Female gender increases anemia risk")
+            if 15 <= age <= 50:
+                score += 0.08
+                evidence.append("Reproductive age increases iron deficiency risk")
+        
+        # Additional risk factors
+        if age > 65:
+            score += 0.05
+            evidence.append("Advanced age increases anemia risk")
+        
+        probability = min(score, 0.95)
+        risk_level = self._determine_risk_level(probability)
+        
+        return {
+            'disease': 'Iron Deficiency Anemia',
+            'probability': probability,
+            'risk_level': risk_level,
+            'evidence': evidence,
+            'model_type': 'rule_based',
+            'severity_level': 2 if probability > 0.6 else 1,
+            'urgency_level': 'moderate' if probability > 0.7 else 'low'
+        }
+    
+    def _predict_hypothyroidism(self, feature_vector: np.ndarray, preprocessed_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Predict hypothyroidism likelihood."""
+        self.log_processing_step("Predicting hypothyroidism")
+        
+        # Key symptoms for hypothyroidism
+        thyroid_symptoms = [
+            'fatigue', 'brain_fog', 'weight_gain', 'hair_loss', 'cold_intolerance',
+            'slow_pulse', 'constipation', 'dry_skin', 'memory_problems',
+            'depression', 'muscle_weakness', 'joint_pain'
+        ]
+        
+        score = 0.0
+        evidence = []
+        patient_info = preprocessed_data.get('patient_info', {})
+        symptoms_data = preprocessed_data.get('processed_symptoms', {})
+        extracted_entities = symptoms_data.get('entities', [])
+        
+        # Symptom matching
+        symptom_keywords = [entity['text'].lower() for entity in extracted_entities if entity.get('type') == 'symptom']
+        
+        for symptom in thyroid_symptoms:
+            if any(symptom.replace('_', ' ') in keyword or keyword in symptom for keyword in symptom_keywords):
+                if symptom in ['cold_intolerance', 'slow_pulse', 'brain_fog']:
+                    score += 0.15  # High specificity symptoms
+                    evidence.append(f"Classic thyroid symptom: {symptom.replace('_', ' ')}")
+                elif symptom in ['weight_gain', 'hair_loss', 'memory_problems']:
+                    score += 0.12  # Specific symptoms
+                    evidence.append(f"Thyroid indicator: {symptom.replace('_', ' ')}")
+                else:
+                    score += 0.08  # General symptoms
+                    evidence.append(f"Common symptom: {symptom.replace('_', ' ')}")
+        
+        # Age and gender risk factors
+        age = patient_info.get('age', 0)
+        gender = patient_info.get('gender', '').lower()
+        
+        if gender == 'female':
+            score += 0.12
+            evidence.append("Female gender significantly increases thyroid risk")
+        
+        if age > 60:
+            score += 0.1
+            evidence.append("Advanced age increases thyroid dysfunction risk")
+        elif age > 40:
+            score += 0.05
+            evidence.append("Middle age increases thyroid risk")
+        
+        probability = min(score, 0.95)
+        risk_level = self._determine_risk_level(probability)
+        
+        return {
+            'disease': 'Hypothyroidism',
+            'probability': probability,
+            'risk_level': risk_level,
+            'evidence': evidence,
+            'model_type': 'rule_based',
+            'severity_level': 2 if probability > 0.6 else 1,
+            'urgency_level': 'moderate' if probability > 0.7 else 'low'
+        }
+    
+    def _predict_vitamin_d_deficiency(self, feature_vector: np.ndarray, preprocessed_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Predict vitamin D deficiency likelihood."""
+        self.log_processing_step("Predicting vitamin D deficiency")
+        
+        # Key symptoms for vitamin D deficiency
+        vitd_symptoms = [
+            'fatigue', 'body_aches', 'muscle_weakness', 'bone_pain',
+            'poor_concentration', 'mood_changes', 'muscle_cramps',
+            'frequent_infections', 'joint_pain'
+        ]
+        
+        score = 0.0
+        evidence = []
+        patient_info = preprocessed_data.get('patient_info', {})
+        symptoms_data = preprocessed_data.get('processed_symptoms', {})
+        extracted_entities = symptoms_data.get('entities', [])
+        
+        # Symptom matching
+        symptom_keywords = [entity['text'].lower() for entity in extracted_entities if entity.get('type') == 'symptom']
+        
+        for symptom in vitd_symptoms:
+            if any(symptom.replace('_', ' ') in keyword or keyword in symptom for keyword in symptom_keywords):
+                if symptom in ['bone_pain', 'muscle_cramps', 'frequent_infections']:
+                    score += 0.15  # High specificity symptoms
+                    evidence.append(f"Classic vitamin D deficiency: {symptom.replace('_', ' ')}")
+                elif symptom in ['body_aches', 'muscle_weakness']:
+                    score += 0.12  # Specific symptoms
+                    evidence.append(f"Vitamin D indicator: {symptom.replace('_', ' ')}")
+                else:
+                    score += 0.08  # General symptoms
+                    evidence.append(f"Common symptom: {symptom.replace('_', ' ')}")
+        
+        # Risk factors
+        age = patient_info.get('age', 0)
+        
+        if age > 65:
+            score += 0.1
+            evidence.append("Advanced age increases vitamin D deficiency risk")
+        
+        # Geographic and lifestyle factors (simplified)
+        score += 0.08  # Base risk due to modern indoor lifestyle
+        evidence.append("Modern lifestyle with limited sun exposure")
+        
+        probability = min(score, 0.95)
+        risk_level = self._determine_risk_level(probability)
+        
+        return {
+            'disease': 'Vitamin D Deficiency',
+            'probability': probability,
+            'risk_level': risk_level,
+            'evidence': evidence,
+            'model_type': 'rule_based',
+            'severity_level': 1 if probability > 0.5 else 0,
+            'urgency_level': 'low'
+        }
+    
+    def _predict_autonomic_dysfunction(self, feature_vector: np.ndarray, preprocessed_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Predict autonomic dysfunction/POTS likelihood."""
+        self.log_processing_step("Predicting autonomic dysfunction")
+        
+        # Key symptoms for autonomic dysfunction
+        autonomic_symptoms = [
+            'dizziness_on_standing', 'palpitations', 'fatigue', 'shortness_of_breath',
+            'chest_pain', 'brain_fog', 'exercise_intolerance', 'rapid_heart_rate',
+            'nausea', 'sweating', 'headache'
+        ]
+        
+        score = 0.0
+        evidence = []
+        patient_info = preprocessed_data.get('patient_info', {})
+        symptoms_data = preprocessed_data.get('processed_symptoms', {})
+        extracted_entities = symptoms_data.get('entities', [])
+        
+        # Symptom matching
+        symptom_keywords = [entity['text'].lower() for entity in extracted_entities if entity.get('type') == 'symptom']
+        symptoms_text = symptoms_data.get('cleaned_text', '').lower()
+        
+        # Check for key orthostatic symptoms
+        orthostatic_indicators = ['dizzy when standing', 'lightheaded standing', 'dizzy standing up']
+        for indicator in orthostatic_indicators:
+            if indicator in symptoms_text:
+                score += 0.2
+                evidence.append("Orthostatic intolerance - key POTS indicator")
+                break
+        
+        for symptom in autonomic_symptoms:
+            if any(symptom.replace('_', ' ') in keyword or keyword in symptom for keyword in symptom_keywords):
+                if symptom in ['dizziness_on_standing', 'exercise_intolerance', 'rapid_heart_rate']:
+                    score += 0.15  # High specificity symptoms
+                    evidence.append(f"Classic autonomic symptom: {symptom.replace('_', ' ')}")
+                elif symptom in ['palpitations', 'brain_fog']:
+                    score += 0.12  # Specific symptoms
+                    evidence.append(f"Autonomic indicator: {symptom.replace('_', ' ')}")
+                else:
+                    score += 0.08  # General symptoms
+                    evidence.append(f"Supporting symptom: {symptom.replace('_', ' ')}")
+        
+        # Check for combination indicators (higher urgency)
+        has_palpitations = any('palpitation' in keyword for keyword in symptom_keywords)
+        has_dizziness = any('dizz' in keyword for keyword in symptom_keywords)
+        has_sob = any('breath' in keyword for keyword in symptom_keywords)
+        
+        if (has_palpitations and has_dizziness) or (has_palpitations and has_sob):
+            evidence.append("Critical combination: cardiovascular symptoms present")
+        
+        # Age and gender risk factors
+        age = patient_info.get('age', 0)
+        gender = patient_info.get('gender', '').lower()
+        
+        if gender == 'female' and 15 <= age <= 35:
+            score += 0.1
+            evidence.append("Young female - higher POTS risk demographic")
+        
+        probability = min(score, 0.95)
+        risk_level = self._determine_risk_level(probability)
+        
+        # Enhanced urgency calculation
+        urgency_level = 'low'
+        if (has_palpitations and has_dizziness) or (has_palpitations and has_sob):
+            urgency_level = 'moderate'
+        
+        return {
+            'disease': 'Autonomic Dysfunction (POTS)',
+            'probability': probability,
+            'risk_level': risk_level,
+            'evidence': evidence,
+            'model_type': 'rule_based',
+            'severity_level': 3 if probability > 0.6 else 2 if probability > 0.4 else 1,
+            'urgency_level': urgency_level
+        }

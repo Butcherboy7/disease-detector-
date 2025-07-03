@@ -262,7 +262,7 @@ def results_step():
     prediction = st.session_state.analysis_data['prediction_result']
     explanation = st.session_state.analysis_data.get('explanation_result', {})
     
-    # Display symptom clustering analysis
+    # Display symptom clustering analysis with enhanced visualization
     if 'symptom_cluster_analysis' in prediction:
         cluster_analysis = prediction['symptom_cluster_analysis']
         
@@ -273,9 +273,50 @@ def results_step():
         if confidence_summary:
             st.info(f"**Analysis Summary:** {confidence_summary}")
         
+        # Create symptom clusters visualization
+        if 'cluster_analysis' in cluster_analysis:
+            cluster_data = cluster_analysis['cluster_analysis']
+            
+            # Create bar chart data for visualization
+            cluster_viz_data = {}
+            for cluster_name, confidence in cluster_data.items():
+                if confidence > 20:  # Only show meaningful clusters
+                    display_name = cluster_name.replace('_', ' ').title()
+                    if 'syndrome' in display_name:
+                        display_name = display_name.replace(' Syndrome', '')
+                    cluster_viz_data[display_name] = round(confidence, 1)
+            
+            if cluster_viz_data:
+                st.write("**Disease Cluster Confidence Scores:**")
+                
+                # Create columns for visualization
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    # Display as progress bars
+                    for cluster_name, confidence in sorted(cluster_viz_data.items(), key=lambda x: x[1], reverse=True):
+                        # Color coding based on confidence
+                        if confidence > 70:
+                            color = "🔴"  # High confidence - red
+                        elif confidence > 50:
+                            color = "🟡"  # Medium confidence - yellow
+                        else:
+                            color = "🟢"  # Lower confidence - green
+                        
+                        st.write(f"{color} **{cluster_name}**: {confidence}%")
+                        st.progress(confidence / 100)
+                
+                with col2:
+                    # Summary box
+                    st.markdown("### Summary")
+                    top_cluster = max(cluster_viz_data.items(), key=lambda x: x[1])
+                    st.write(f"**Primary Pattern:**")
+                    st.write(f"{top_cluster[0]}")
+                    st.write(f"**Confidence:** {top_cluster[1]}%")
+        
         # Show top clusters
         if 'top_clusters' in cluster_analysis and cluster_analysis['top_clusters']:
-            st.write("**Top Disease Pattern Matches:**")
+            st.write("**Key Pattern Matches:**")
             for cluster_name, confidence in cluster_analysis['top_clusters']:
                 if confidence > 30:  # Only show meaningful confidences
                     cluster_display = cluster_name.replace('_', ' ').title()
@@ -310,12 +351,30 @@ def results_step():
     st.subheader("🎯 Disease Risk Assessment")
     
     if 'predictions' in prediction:
-        for disease_pred in prediction['predictions']:
+        # Filter out low probability predictions unless they're the new common diseases
+        filtered_predictions = []
+        for pred in prediction['predictions']:
+            prob = pred.get('probability', 0)
+            disease = pred.get('disease', '')
+            
+            # Always show new common diseases and predictions above 10%
+            if prob > 0.1 or any(keyword in disease.lower() for keyword in ['anemia', 'thyroid', 'vitamin d', 'autonomic']):
+                filtered_predictions.append(pred)
+        
+        # Sort by probability, but prioritize new conditions
+        filtered_predictions.sort(key=lambda x: (x.get('probability', 0) + 
+                                               (0.1 if any(keyword in x.get('disease', '').lower() 
+                                                          for keyword in ['anemia', 'thyroid', 'vitamin d', 'autonomic']) 
+                                                else 0)), reverse=True)
+        
+        for disease_pred in filtered_predictions:
             disease = disease_pred.get('disease', 'Unknown')
             probability = disease_pred.get('probability', 0)
             risk_level = disease_pred.get('risk_level', 'Unknown')
+            severity_level = disease_pred.get('severity_level', 1)
+            urgency_level = disease_pred.get('urgency_level', 'low')
             
-            col1, col2, col3 = st.columns([2, 1, 1])
+            col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
             
             with col1:
                 st.write(f"**{disease}**")
@@ -323,8 +382,16 @@ def results_step():
                 if disease_pred.get('lab_adjusted'):
                     original_prob = disease_pred.get('original_probability', probability)
                     st.caption(f"Lab-adjusted (was {original_prob:.1%})")
+                
+                # Show evidence
+                evidence = disease_pred.get('evidence', [])
+                if evidence and len(evidence) > 0:
+                    key_evidence = evidence[:2]  # Show top 2 evidence points
+                    st.caption(f"Key indicators: {', '.join(key_evidence)}")
+            
             with col2:
                 st.metric("Probability", f"{probability:.1%}")
+            
             with col3:
                 if risk_level.lower() == 'high':
                     st.error(f"🔴 {risk_level}")
@@ -332,6 +399,17 @@ def results_step():
                     st.warning(f"🟡 {risk_level}")
                 else:
                     st.success(f"🟢 {risk_level}")
+            
+            with col4:
+                # Show severity and urgency
+                if urgency_level == 'moderate':
+                    st.warning(f"⚠️ Urgency: {urgency_level.title()}")
+                else:
+                    st.info(f"ℹ️ Urgency: {urgency_level.title()}")
+                
+                st.caption(f"Severity Level: {severity_level}")
+            
+            st.divider()
     
     # Display follow-up questions
     if 'follow_up_questions' in prediction and prediction['follow_up_questions']:

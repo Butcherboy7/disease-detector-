@@ -1,0 +1,59 @@
+I want to improve the accuracy and clinical value of my AI-powered disease detection app. Currently, it's missing common diagnoses like anemia and hypothyroidism in realistic test cases. Follow the instructions below and modify the system accordingly.
+
+====================
+✅ MODULE CHANGES
+====================
+
+1. ✳️ Add Disease Predictions:
+   - Add these new conditions into the model:
+     a. Iron Deficiency Anemia
+     b. Hypothyroidism
+     c. Vitamin D Deficiency
+     d. Nutritional Deficiency Cluster
+   - Each of these should map to specific symptom clusters (see below).
+
+2. 🔄 Improve Symptom-to-Disease Mapping:
+   Use rules or similarity scoring to link symptom clusters to diseases:
+   - **Anemia** → fatigue, cold hands/feet, dizziness, palpitations, hair thinning, brain fog
+   - **Hypothyroidism** → fatigue, brain fog, weight gain, hair loss, cold intolerance, slow pulse
+   - **Vitamin D Deficiency** → fatigue, body aches, weakness, poor concentration
+   - **POTS or Autonomic Issue** → dizziness on standing, palpitations, fatigue
+
+3. 📊 Modify Severity & Urgency Calculation:
+   - Increase `severity_level` to 2 or higher if 3+ symptoms from metabolic, cardio, or neuro category co-occur.
+   - Upgrade `urgency_level` to `moderate` if palpitations + dizziness or shortness of breath are both present.
+   - Remove or down-weight “Low Concern” fallback if other predictions have >10% probability.
+
+4. 📈 Add Symptom Clustering Visualization:
+   - Create a new JSON object in output like:
+     ```
+     "symptom_clusters": {
+         "Metabolic": 75,
+         "Neurological": 65,
+         "Cardiovascular": 45
+     }
+     ```
+   - Optionally visualize this as a bar chart if frontend allows.
+
+5. 📥 Enhance Lab Data Integration:
+   - If user provides structured lab values (e.g. JSON), adjust prediction scores accordingly:
+     - Hb < 11 or Ferritin < 15 → Boost anemia score +30%
+     - TSH > 4.5 → Boost hypothyroid score +25%
+     - Vitamin D < 20 → Boost nutritional deficiency score +20%
+
+6. 🧠 Improve Model Logic or Swap Out:
+   - If model is currently based on HuggingFace’s symptom classifier, replace or fine-tune it with a better symptom-to-condition model (e.g. Med-BERT, ClinicalBERT).
+   - Alternatively, consider using rule-based logic layered over the ML output to prioritize common, high-prevalence conditions.
+
+7. 🩺 Add Explanation Section:
+   - For each predicted disease, provide a 2–3 sentence summary explaining:
+     - What it is
+     - Why it’s suspected (based on symptoms/labs)
+
+8. 📂 Save Clinical Summary for Doctors:
+   - Auto-generate a doctor summary as a separate downloadable text or PDF file that includes:
+     - Symptom list
+     - Predicted conditions
+     - Risk levels
+     - Lab values (if available)
+     - Recommendations

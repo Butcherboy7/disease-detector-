@@ -222,6 +222,34 @@ Keep the explanation under 300 words and maintain a professional, caring tone.
                         "Consider pulmonary function tests",
                         "Use prescribed inhalers as directed if you have them"
                     ])
+                elif 'Anemia' in disease or 'Iron' in disease:
+                    recommendations.extend([
+                        "Request complete blood count (CBC) and iron studies tests",
+                        "Increase iron-rich foods in your diet (leafy greens, lean meats)",
+                        "Consider vitamin C to enhance iron absorption",
+                        "Avoid drinking tea or coffee with iron-rich meals"
+                    ])
+                elif 'Thyroid' in disease or 'Hypothyroid' in disease:
+                    recommendations.extend([
+                        "Request thyroid function tests (TSH, Free T4)",
+                        "Monitor your weight, energy levels, and cold tolerance",
+                        "Consider reducing raw cruciferous vegetables if consuming large amounts",
+                        "Ensure adequate iodine and selenium in your diet"
+                    ])
+                elif 'Vitamin D' in disease:
+                    recommendations.extend([
+                        "Request 25-hydroxyvitamin D blood test",
+                        "Increase safe sun exposure (10-15 minutes daily)",
+                        "Consider vitamin D3 supplements after testing",
+                        "Include vitamin D-rich foods (fatty fish, fortified milk)"
+                    ])
+                elif 'Autonomic' in disease or 'POTS' in disease:
+                    recommendations.extend([
+                        "Schedule consultation with cardiologist or autonomic specialist",
+                        "Consider tilt table test for POTS diagnosis",
+                        "Increase salt and fluid intake if medically appropriate",
+                        "Wear compression stockings to improve blood flow"
+                    ])
         
         # General health recommendations
         recommendations.extend([

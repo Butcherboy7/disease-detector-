@@ -100,6 +100,62 @@ class SymptomClusterAnalyzer:
                     'concentration_difficulty': 0.8
                 },
                 'confidence_threshold': 0.65
+            },
+            'iron_deficiency_anemia': {
+                'symptoms': [
+                    'fatigue', 'weakness', 'cold_hands', 'cold_feet', 'dizziness',
+                    'palpitations', 'hair_thinning', 'brittle_nails', 'restless_legs',
+                    'ice_cravings', 'pale_skin', 'shortness_of_breath', 'brain_fog'
+                ],
+                'weight_factors': {
+                    'fatigue': 0.9, 'weakness': 0.85, 'cold_hands': 0.8, 'cold_feet': 0.8,
+                    'dizziness': 0.8, 'palpitations': 0.75, 'hair_thinning': 0.85,
+                    'brittle_nails': 0.9, 'restless_legs': 0.9, 'ice_cravings': 0.95,
+                    'pale_skin': 0.9, 'shortness_of_breath': 0.8, 'brain_fog': 0.7
+                },
+                'confidence_threshold': 0.6
+            },
+            'hypothyroidism': {
+                'symptoms': [
+                    'fatigue', 'brain_fog', 'weight_gain', 'hair_loss', 'cold_intolerance',
+                    'slow_pulse', 'constipation', 'dry_skin', 'memory_problems',
+                    'depression', 'muscle_weakness', 'joint_pain', 'sleep_issues'
+                ],
+                'weight_factors': {
+                    'fatigue': 0.85, 'brain_fog': 0.9, 'weight_gain': 0.9, 'hair_loss': 0.9,
+                    'cold_intolerance': 0.95, 'slow_pulse': 0.85, 'constipation': 0.8,
+                    'dry_skin': 0.8, 'memory_problems': 0.85, 'depression': 0.75,
+                    'muscle_weakness': 0.8, 'joint_pain': 0.7, 'sleep_issues': 0.7
+                },
+                'confidence_threshold': 0.65
+            },
+            'vitamin_d_deficiency': {
+                'symptoms': [
+                    'fatigue', 'body_aches', 'muscle_weakness', 'bone_pain',
+                    'poor_concentration', 'mood_changes', 'muscle_cramps',
+                    'frequent_infections', 'joint_pain', 'sleep_problems'
+                ],
+                'weight_factors': {
+                    'fatigue': 0.8, 'body_aches': 0.9, 'muscle_weakness': 0.9,
+                    'bone_pain': 0.95, 'poor_concentration': 0.75, 'mood_changes': 0.8,
+                    'muscle_cramps': 0.85, 'frequent_infections': 0.8, 'joint_pain': 0.85,
+                    'sleep_problems': 0.7
+                },
+                'confidence_threshold': 0.6
+            },
+            'autonomic_dysfunction': {
+                'symptoms': [
+                    'dizziness_on_standing', 'palpitations', 'fatigue', 'shortness_of_breath',
+                    'chest_pain', 'brain_fog', 'exercise_intolerance', 'rapid_heart_rate',
+                    'nausea', 'sweating', 'headache', 'sleep_disturbances'
+                ],
+                'weight_factors': {
+                    'dizziness_on_standing': 0.95, 'palpitations': 0.9, 'fatigue': 0.8,
+                    'shortness_of_breath': 0.85, 'chest_pain': 0.8, 'brain_fog': 0.85,
+                    'exercise_intolerance': 0.9, 'rapid_heart_rate': 0.9, 'nausea': 0.7,
+                    'sweating': 0.75, 'headache': 0.7, 'sleep_disturbances': 0.75
+                },
+                'confidence_threshold': 0.7
             }
         }
         
@@ -115,7 +171,24 @@ class SymptomClusterAnalyzer:
             'stomach pain': 'abdominal_pain', 'belly pain': 'abdominal_pain',
             'can\'t sleep': 'insomnia', 'sleepless': 'insomnia',
             'worried': 'anxiety', 'nervous': 'anxiety', 'stressed': 'anxiety',
-            'sad': 'depression', 'down': 'depression', 'hopeless': 'depression'
+            'sad': 'depression', 'down': 'depression', 'hopeless': 'depression',
+            # New mappings for anemia
+            'cold hands': 'cold_hands', 'cold feet': 'cold_feet',
+            'hair falling out': 'hair_thinning', 'brittle nails': 'brittle_nails',
+            'restless legs': 'restless_legs', 'craving ice': 'ice_cravings',
+            'pale': 'pale_skin', 'brain fog': 'brain_fog',
+            # New mappings for thyroid
+            'cold all the time': 'cold_intolerance', 'slow heart': 'slow_pulse',
+            'dry skin': 'dry_skin', 'memory issues': 'memory_problems',
+            'hair loss': 'hair_loss', 'weight gain': 'weight_gain',
+            # New mappings for vitamin D
+            'body aches': 'body_aches', 'bone pain': 'bone_pain',
+            'muscle cramps': 'muscle_cramps', 'poor concentration': 'poor_concentration',
+            'mood swings': 'mood_changes', 'frequent colds': 'frequent_infections',
+            # New mappings for autonomic/POTS
+            'dizzy when standing': 'dizziness_on_standing',
+            'can\'t exercise': 'exercise_intolerance', 'fast heart rate': 'rapid_heart_rate',
+            'sweating': 'sweating', 'sleep problems': 'sleep_disturbances'
         }
     
     def analyze_symptom_clusters(self, symptoms_text: str, extracted_entities: List[Dict]) -> Dict[str, Any]:
@@ -319,6 +392,78 @@ class SymptomClusterAnalyzer:
                     "question": "How long have you been experiencing these respiratory symptoms?",
                     "context": "Duration helps distinguish between acute and chronic conditions",
                     "type": "duration"
+                }
+            ])
+        elif top_cluster_name == 'iron_deficiency_anemia':
+            questions.extend([
+                {
+                    "question": "Do you have unusually cold hands or feet, even in warm weather?",
+                    "context": "Cold extremities are common signs of anemia",
+                    "type": "yes_no"
+                },
+                {
+                    "question": "Have you noticed any unusual cravings, especially for ice or starch?",
+                    "context": "Unusual cravings can indicate iron deficiency",
+                    "type": "yes_no"
+                },
+                {
+                    "question": "Do you experience restless legs, especially at night?",
+                    "context": "Restless leg syndrome is often linked to iron deficiency",
+                    "type": "yes_no"
+                }
+            ])
+        elif top_cluster_name == 'hypothyroidism':
+            questions.extend([
+                {
+                    "question": "Do you feel cold all the time, even when others are comfortable?",
+                    "context": "Cold intolerance is a key sign of hypothyroidism",
+                    "type": "yes_no"
+                },
+                {
+                    "question": "Have you experienced unexplained weight gain despite no changes in diet?",
+                    "context": "Weight gain can indicate slowed metabolism from thyroid issues",
+                    "type": "yes_no"
+                },
+                {
+                    "question": "Have you noticed your hair becoming thinner or more brittle?",
+                    "context": "Hair changes are common in thyroid disorders",
+                    "type": "yes_no"
+                }
+            ])
+        elif top_cluster_name == 'vitamin_d_deficiency':
+            questions.extend([
+                {
+                    "question": "Do you experience muscle aches or bone pain, especially in your back?",
+                    "context": "Bone and muscle pain are classic signs of vitamin D deficiency",
+                    "type": "yes_no"
+                },
+                {
+                    "question": "How much time do you spend outdoors in sunlight each week?",
+                    "context": "Limited sun exposure increases vitamin D deficiency risk",
+                    "type": "descriptive"
+                },
+                {
+                    "question": "Do you get sick more often than you used to?",
+                    "context": "Frequent infections can indicate immune system weakness from vitamin D deficiency",
+                    "type": "yes_no"
+                }
+            ])
+        elif top_cluster_name == 'autonomic_dysfunction':
+            questions.extend([
+                {
+                    "question": "Do you feel dizzy or lightheaded when you stand up quickly?",
+                    "context": "Orthostatic intolerance is a key sign of autonomic dysfunction",
+                    "type": "yes_no"
+                },
+                {
+                    "question": "Do you have difficulty with exercise or feel exhausted after minimal activity?",
+                    "context": "Exercise intolerance can indicate autonomic nervous system issues",
+                    "type": "yes_no"
+                },
+                {
+                    "question": "Does your heart rate increase significantly when you change positions?",
+                    "context": "Postural heart rate changes suggest possible POTS or autonomic issues",
+                    "type": "yes_no"
                 }
             ])
         
