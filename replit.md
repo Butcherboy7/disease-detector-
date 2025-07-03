@@ -95,10 +95,38 @@ The application implements six specialized agents:
 - Rule-based fallback algorithms
 - Local file processing without external dependencies
 
+## Enhanced Features (Latest Updates)
+
+### Symptom Clustering Analysis
+- **Intelligent Pattern Recognition**: Analyzes symptoms across 6 disease categories (metabolic, cardiovascular, respiratory, neurological, mental health, gastrointestinal)
+- **Confidence Scoring**: Provides percentage confidence for disease cluster matches
+- **Example Output**: "Clustered symptoms point 72% toward metabolic syndrome"
+- **Implementation**: New `utils/symptom_clustering.py` module with weighted clustering algorithms
+
+### Lab Report Integration
+- **Automatic Value Extraction**: Supports blood glucose, cholesterol panels, kidney function, liver function, CBC, thyroid, and inflammatory markers
+- **Risk Score Adjustment**: Lab values dynamically modify disease prediction probabilities
+- **Normal Range Validation**: Compares extracted values against medical reference ranges
+- **Implementation**: New `utils/lab_report_analyzer.py` with comprehensive lab parsing
+
+### Follow-up Question Model
+- **Adaptive Questioning**: Generates 3 context-aware questions based on initial analysis
+- **Question Types**: Yes/No, scale ratings, frequency assessments, duration tracking, and descriptive responses
+- **Accuracy Improvement**: Questions designed to refine prediction confidence
+- **Implementation**: Integrated into prediction agent with UI step 5 for question collection
+
+### Enhanced User Interface
+- **Step 5 Added**: Dedicated follow-up questions interface with multiple input types
+- **Cluster Analysis Display**: Visual representation of symptom pattern matches
+- **Lab Analysis Section**: Shows extracted values and risk adjustments
+- **Confidence Indicators**: Clear display of lab-adjusted vs original predictions
+
 ## Changelog
 ```
 Changelog:
-- July 03, 2025. Initial setup
+- July 03, 2025: Enhanced with symptom clustering, lab integration, and follow-up questions
+- July 03, 2025: Added comprehensive GitHub documentation (README, CONTRIBUTING)
+- July 03, 2025: Initial multi-agent architecture setup
 ```
 
 ## User Preferences

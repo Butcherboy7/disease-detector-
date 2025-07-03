@@ -10,6 +10,8 @@ from typing import Dict, Any, List, Tuple
 from .base_agent import BaseAgent
 from utils.disease_models import DiseaseModels
 from utils.api_clients import HuggingFaceClient
+from utils.symptom_clustering import SymptomClusterAnalyzer
+from utils.lab_report_analyzer import LabReportAnalyzer
 
 class PredictionAgent(BaseAgent):
     """
@@ -21,6 +23,8 @@ class PredictionAgent(BaseAgent):
         super().__init__("PredictionAgent")
         self.disease_models = DiseaseModels()
         self.hf_client = HuggingFaceClient()
+        self.symptom_analyzer = SymptomClusterAnalyzer()
+        self.lab_analyzer = LabReportAnalyzer()
         
     def process(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -43,6 +47,12 @@ class PredictionAgent(BaseAgent):
             
             # Extract features for prediction
             feature_vector = self._extract_feature_vector(preprocessed_data)
+            
+            # Perform symptom clustering analysis
+            symptom_cluster_analysis = self._perform_symptom_clustering(preprocessed_data)
+            
+            # Analyze lab reports if available
+            lab_analysis = self._analyze_lab_reports(preprocessed_data)
             
             # Make predictions for different diseases
             predictions = []
@@ -71,19 +81,30 @@ class PredictionAgent(BaseAgent):
             # Sort predictions by probability
             predictions.sort(key=lambda x: x['probability'], reverse=True)
             
+            # Apply lab-based risk adjustments
+            adjusted_predictions = self._apply_lab_adjustments(predictions, lab_analysis)
+            
             # Calculate overall risk assessment
-            overall_risk = self._calculate_overall_risk(predictions, preprocessed_data)
+            overall_risk = self._calculate_overall_risk_enhanced(adjusted_predictions, preprocessed_data, lab_analysis or {})
+            
+            # Generate follow-up questions
+            follow_up_questions = self._generate_follow_up_questions(symptom_cluster_analysis, adjusted_predictions)
             
             self.log_processing_step("Disease prediction completed successfully")
             
             return self.create_success_response({
-                'predictions': predictions,
+                'predictions': adjusted_predictions,
                 'overall_risk': overall_risk,
+                'symptom_cluster_analysis': symptom_cluster_analysis,
+                'lab_analysis': lab_analysis,
+                'follow_up_questions': follow_up_questions,
                 'feature_vector': feature_vector.tolist() if isinstance(feature_vector, np.ndarray) else feature_vector,
                 'prediction_metadata': {
-                    'num_predictions': len(predictions),
-                    'highest_risk_disease': predictions[0]['disease'] if predictions else None,
-                    'max_probability': predictions[0]['probability'] if predictions else 0
+                    'num_predictions': len(adjusted_predictions),
+                    'highest_risk_disease': adjusted_predictions[0]['disease'] if adjusted_predictions else None,
+                    'max_probability': adjusted_predictions[0]['probability'] if adjusted_predictions else 0,
+                    'lab_adjusted': bool(lab_analysis.get('risk_adjustments')),
+                    'clustering_confidence': symptom_cluster_analysis.get('confidence_summary', '')
                 }
             })
             
@@ -464,3 +485,213 @@ class PredictionAgent(BaseAgent):
             'primary_concerns': high_risk_diseases,
             'recommendation': recommendation
         }
+    
+    def _perform_symptom_clustering(self, preprocessed_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Perform symptom clustering analysis."""
+        try:
+            self.log_processing_step("Performing symptom clustering analysis")
+            
+            # Extract symptoms data
+            symptoms_data = preprocessed_data.get('processed_symptoms', {})
+            symptoms_text = symptoms_data.get('raw_text', '')
+            extracted_entities = preprocessed_data.get('preprocessing_metadata', {}).get('extracted_entities', [])
+            
+            if not symptoms_text:
+                return {'cluster_analysis': {}, 'insights': [], 'confidence_summary': 'No symptoms provided'}
+            
+            # Perform clustering analysis
+            cluster_analysis = self.symptom_analyzer.analyze_symptom_clusters(symptoms_text, extracted_entities)
+            
+            return cluster_analysis
+            
+        except Exception as e:
+            self.logger.warning(f"Symptom clustering failed: {str(e)}")
+            return {'cluster_analysis': {}, 'insights': [], 'confidence_summary': 'Analysis unavailable'}
+    
+    def _analyze_lab_reports(self, preprocessed_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze lab reports if available."""
+        try:
+            self.log_processing_step("Analyzing lab reports")
+            
+            # Extract processed files
+            processed_files = preprocessed_data.get('processed_files', [])
+            lab_analysis_results = {}
+            
+            for file_data in processed_files:
+                if file_data.get('category') in ['lab_report', 'blood_test', 'medical_report']:
+                    file_text = file_data.get('extracted_text', '')
+                    if file_text:
+                        lab_analysis = self.lab_analyzer.analyze_lab_report(file_text)
+                        lab_analysis_results[file_data.get('filename', 'unknown')] = lab_analysis
+            
+            # Combine results from all lab reports
+            if lab_analysis_results:
+                combined_analysis = self._combine_lab_analyses(lab_analysis_results)
+                return combined_analysis
+            else:
+                return {'extracted_values': {}, 'risk_adjustments': {}, 'lab_insights': []}
+                
+        except Exception as e:
+            self.logger.warning(f"Lab report analysis failed: {str(e)}")
+            return {'extracted_values': {}, 'risk_adjustments': {}, 'lab_insights': []}
+    
+    def _combine_lab_analyses(self, lab_results: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+        """Combine multiple lab analysis results."""
+        combined_values = {}
+        all_insights = []
+        combined_risk_adjustments = {}
+        
+        for filename, analysis in lab_results.items():
+            # Combine extracted values
+            for category, values in analysis.get('extracted_values', {}).items():
+                if category not in combined_values:
+                    combined_values[category] = {}
+                combined_values[category].update(values)
+            
+            # Combine insights
+            insights = analysis.get('lab_insights', [])
+            all_insights.extend([f"{filename}: {insight}" for insight in insights])
+            
+            # Combine risk adjustments (take maximum)
+            risk_adjustments = analysis.get('risk_adjustments', {})
+            for disease, adjustment in risk_adjustments.items():
+                if disease not in combined_risk_adjustments:
+                    combined_risk_adjustments[disease] = adjustment
+                else:
+                    combined_risk_adjustments[disease] = max(combined_risk_adjustments[disease], adjustment)
+        
+        return {
+            'extracted_values': combined_values,
+            'risk_adjustments': combined_risk_adjustments,
+            'lab_insights': all_insights,
+            'num_reports_analyzed': len(lab_results)
+        }
+    
+    def _apply_lab_adjustments(self, predictions: List[Dict[str, Any]], lab_analysis: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Apply lab-based risk adjustments to predictions."""
+        if not lab_analysis.get('risk_adjustments'):
+            return predictions
+        
+        risk_adjustments = lab_analysis['risk_adjustments']
+        adjusted_predictions = []
+        
+        for prediction in predictions:
+            disease = prediction['disease'].lower()
+            adjusted_prediction = prediction.copy()
+            
+            # Apply adjustment if available
+            adjustment_factor = 1.0
+            for disease_key, factor in risk_adjustments.items():
+                if disease_key in disease or disease in disease_key:
+                    adjustment_factor = factor
+                    break
+            
+            # Adjust probability
+            original_prob = prediction['probability']
+            adjusted_prob = min(original_prob * adjustment_factor, 1.0)
+            adjusted_prediction['probability'] = adjusted_prob
+            adjusted_prediction['risk_level'] = self._determine_risk_level(adjusted_prob)
+            
+            # Add lab adjustment info
+            if adjustment_factor != 1.0:
+                adjusted_prediction['lab_adjusted'] = True
+                adjusted_prediction['adjustment_factor'] = adjustment_factor
+                adjusted_prediction['original_probability'] = original_prob
+            
+            adjusted_predictions.append(adjusted_prediction)
+        
+        # Re-sort by adjusted probability
+        adjusted_predictions.sort(key=lambda x: x['probability'], reverse=True)
+        
+        return adjusted_predictions
+    
+    def _generate_follow_up_questions(self, symptom_cluster_analysis: Dict[str, Any], predictions: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+        """Generate follow-up questions based on analysis."""
+        try:
+            # Get questions from symptom clustering
+            cluster_questions = self.symptom_analyzer.get_follow_up_questions(symptom_cluster_analysis)
+            
+            # Add prediction-specific questions
+            prediction_questions = []
+            if predictions:
+                top_prediction = predictions[0]
+                if top_prediction['probability'] > 0.5:
+                    disease = top_prediction['disease'].lower()
+                    
+                    if 'diabetes' in disease:
+                        prediction_questions.append({
+                            "question": "Do you have a family history of diabetes?",
+                            "context": "Family history is a significant risk factor for diabetes",
+                            "type": "yes_no"
+                        })
+                    elif 'heart' in disease:
+                        prediction_questions.append({
+                            "question": "Do you smoke or have you smoked in the past?",
+                            "context": "Smoking is a major risk factor for heart disease",
+                            "type": "yes_no"
+                        })
+            
+            # Combine and limit questions
+            all_questions = cluster_questions + prediction_questions
+            return all_questions[:3]  # Return max 3 questions
+            
+        except Exception as e:
+            self.logger.warning(f"Follow-up question generation failed: {str(e)}")
+            return []
+    
+    def _calculate_overall_risk_enhanced(self, predictions: List[Dict[str, Any]], preprocessed_data: Dict[str, Any], lab_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate overall health risk assessment with lab adjustments."""
+        if not predictions:
+            return {
+                'level': 'Low',
+                'score': 0.0,
+                'primary_concerns': [],
+                'recommendation': 'Continue regular health monitoring'
+            }
+        
+        # Calculate weighted risk score
+        total_score = 0.0
+        high_risk_diseases = []
+        
+        for pred in predictions:
+            if pred['risk_level'] == 'High':
+                total_score += pred['probability'] * 1.0
+                high_risk_diseases.append(pred['disease'])
+            elif pred['risk_level'] == 'Medium':
+                total_score += pred['probability'] * 0.6
+            else:
+                total_score += pred['probability'] * 0.3
+        
+        # Apply lab-based risk multiplier
+        lab_multiplier = 1.0
+        if lab_analysis and lab_analysis.get('risk_adjustments'):
+            max_adjustment = max(lab_analysis['risk_adjustments'].values())
+            lab_multiplier = min(max_adjustment, 1.5)  # Cap at 1.5x
+        
+        # Normalize score
+        overall_score = min((total_score / len(predictions)) * lab_multiplier, 1.0)
+        
+        # Determine overall risk level
+        if overall_score > 0.7 or len(high_risk_diseases) >= 2:
+            risk_level = 'High'
+            recommendation = 'Seek immediate medical attention'
+        elif overall_score > 0.4 or len(high_risk_diseases) >= 1:
+            risk_level = 'Medium'
+            recommendation = 'Schedule appointment with healthcare provider'
+        else:
+            risk_level = 'Low'
+            recommendation = 'Continue regular health monitoring'
+        
+        result = {
+            'level': risk_level,
+            'score': overall_score,
+            'primary_concerns': high_risk_diseases,
+            'recommendation': recommendation
+        }
+        
+        # Add lab adjustment info if applicable
+        if lab_analysis and lab_analysis.get('risk_adjustments'):
+            result['lab_adjusted'] = True
+            result['lab_multiplier'] = lab_multiplier
+        
+        return result

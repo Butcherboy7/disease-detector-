@@ -56,6 +56,8 @@ def main():
         analysis_step()
     elif st.session_state.current_step == 4:
         results_step()
+    elif st.session_state.current_step == 5:
+        follow_up_questions_step()
 
 def input_collection_step():
     st.header("📝 Step 1: Input Collection")
@@ -260,6 +262,50 @@ def results_step():
     prediction = st.session_state.analysis_data['prediction_result']
     explanation = st.session_state.analysis_data.get('explanation_result', {})
     
+    # Display symptom clustering analysis
+    if 'symptom_cluster_analysis' in prediction:
+        cluster_analysis = prediction['symptom_cluster_analysis']
+        
+        st.subheader("🎯 Symptom Pattern Analysis")
+        
+        # Show confidence summary
+        confidence_summary = cluster_analysis.get('confidence_summary', '')
+        if confidence_summary:
+            st.info(f"**Analysis Summary:** {confidence_summary}")
+        
+        # Show top clusters
+        if 'top_clusters' in cluster_analysis and cluster_analysis['top_clusters']:
+            st.write("**Top Disease Pattern Matches:**")
+            for cluster_name, confidence in cluster_analysis['top_clusters']:
+                if confidence > 30:  # Only show meaningful confidences
+                    cluster_display = cluster_name.replace('_', ' ').title()
+                    st.write(f"• Clustered symptoms point **{confidence:.0f}%** toward {cluster_display}")
+        
+        # Show insights
+        if 'insights' in cluster_analysis and cluster_analysis['insights']:
+            with st.expander("📋 Detailed Pattern Insights"):
+                for insight in cluster_analysis['insights']:
+                    st.write(f"• {insight}")
+    
+    # Display lab analysis if available
+    if 'lab_analysis' in prediction and prediction['lab_analysis'].get('extracted_values'):
+        lab_analysis = prediction['lab_analysis']
+        
+        st.subheader("🔬 Lab Report Analysis")
+        
+        # Show lab insights
+        if 'lab_insights' in lab_analysis and lab_analysis['lab_insights']:
+            for insight in lab_analysis['lab_insights']:
+                st.write(f"• {insight}")
+        
+        # Show risk adjustments
+        if 'risk_adjustments' in lab_analysis and lab_analysis['risk_adjustments']:
+            st.write("**Risk Adjustments Based on Lab Values:**")
+            for disease, adjustment in lab_analysis['risk_adjustments'].items():
+                if adjustment != 1.0:
+                    adjustment_text = f"{adjustment:.1f}x" if adjustment > 1.0 else f"{adjustment:.1f}x"
+                    st.write(f"• {disease.replace('_', ' ').title()}: {adjustment_text} risk multiplier")
+    
     # Display predictions
     st.subheader("🎯 Disease Risk Assessment")
     
@@ -273,6 +319,10 @@ def results_step():
             
             with col1:
                 st.write(f"**{disease}**")
+                # Show if lab adjusted
+                if disease_pred.get('lab_adjusted'):
+                    original_prob = disease_pred.get('original_probability', probability)
+                    st.caption(f"Lab-adjusted (was {original_prob:.1%})")
             with col2:
                 st.metric("Probability", f"{probability:.1%}")
             with col3:
@@ -282,6 +332,17 @@ def results_step():
                     st.warning(f"🟡 {risk_level}")
                 else:
                     st.success(f"🟢 {risk_level}")
+    
+    # Display follow-up questions
+    if 'follow_up_questions' in prediction and prediction['follow_up_questions']:
+        st.subheader("❓ Follow-up Questions")
+        st.info("Answer these 3 quick questions to improve prediction accuracy:")
+        
+        follow_up_questions = prediction['follow_up_questions']
+        if st.button("Answer Follow-up Questions", type="secondary"):
+            st.session_state.follow_up_questions = follow_up_questions
+            st.session_state.current_step = 5
+            st.rerun()
     
     # Display explanations
     if 'explanation' in explanation:
@@ -305,6 +366,72 @@ def results_step():
     with col2:
         if st.button("🔄 Start New Analysis"):
             reset_analysis()
+
+def follow_up_questions_step():
+    st.header("❓ Step 5: Follow-up Questions")
+    st.info("Please answer these questions to improve the accuracy of your health analysis:")
+    
+    if 'follow_up_questions' not in st.session_state:
+        st.error("No follow-up questions available.")
+        if st.button("Back to Results"):
+            st.session_state.current_step = 4
+            st.rerun()
+        return
+    
+    questions = st.session_state.follow_up_questions
+    answers = {}
+    
+    for i, question_data in enumerate(questions):
+        question = question_data.get('question', '')
+        context = question_data.get('context', '')
+        q_type = question_data.get('type', 'descriptive')
+        
+        st.subheader(f"Question {i+1}")
+        st.write(f"**{question}**")
+        if context:
+            st.caption(f"Context: {context}")
+        
+        if q_type == 'yes_no':
+            answer = st.radio(f"Answer {i+1}:", ["Yes", "No"], key=f"q_{i}")
+        elif q_type == 'scale':
+            answer = st.slider(f"Answer {i+1}:", 1, 10, 5, key=f"q_{i}")
+        elif q_type == 'frequency':
+            answer = st.selectbox(f"Answer {i+1}:", 
+                                ["Never", "Rarely", "Sometimes", "Often", "Always"], 
+                                key=f"q_{i}")
+        elif q_type == 'choice':
+            answer = st.selectbox(f"Answer {i+1}:", 
+                                ["Dry cough", "Cough with mucus/phlegm"], 
+                                key=f"q_{i}")
+        elif q_type == 'duration':
+            answer = st.selectbox(f"Answer {i+1}:", 
+                                ["Less than 1 week", "1-2 weeks", "2-4 weeks", "1-3 months", "More than 3 months"], 
+                                key=f"q_{i}")
+        else:  # descriptive
+            answer = st.text_area(f"Answer {i+1}:", key=f"q_{i}")
+        
+        answers[f"question_{i+1}"] = {
+            'question': question,
+            'answer': answer,
+            'type': q_type
+        }
+        
+        st.divider()
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("📊 Update Analysis with Answers", type="primary"):
+            # Store answers and trigger re-analysis
+            st.session_state.follow_up_answers = answers
+            st.info("Thank you! Your answers have been recorded to improve future analysis accuracy.")
+            st.session_state.current_step = 4
+            st.rerun()
+    
+    with col2:
+        if st.button("⏩ Skip Questions"):
+            st.session_state.current_step = 4
+            st.rerun()
 
 def generate_report():
     try:
